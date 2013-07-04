@@ -2,8 +2,10 @@
 
 from datetime import datetime
 from dateutil.tz import tzlocal
+import contextlib
 import re
 import os
+import subprocess
 import time
 
 from dulwich.repo import Repo
@@ -11,8 +13,22 @@ from dulwich.objects import S_ISGITLINK, Blob, Commit
 from stat import S_ISLNK, S_ISDIR, S_ISREG
 import logbook
 import verlib
+from tempdir import TempDir
+import virtualenv
 
 log = logbook.Logger('release')
+
+
+class ReleaseError(Exception):
+    pass
+
+
+@contextlib.contextmanager
+def dirch(dir):
+    prev = os.getcwd()
+    os.chdir(dir)
+    yield
+    os.chdir(prev)
 
 
 def get_local_tz_offset(ltz, now):
@@ -143,6 +159,15 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
     return new_commit, tree, objects_to_add
 
 
+def checked_output(cmd, *args, **kwargs):
+    try:
+        log.debug('run %s' % ' '.join(cmd))
+        subprocess.check_output(cmd, *args, stderr=subprocess.STDOUT, **kwargs)
+    except subprocess.CalledProcessError as e:
+        log.error('Error calling external process.\n%s' % e.output)
+        raise
+
+
 def action_create_release(args, repo):
     refname = 'refs/heads/%s' % args.branch
     if not refname in repo.refs:
@@ -204,6 +229,38 @@ def action_create_release(args, repo):
         repo.object_store.add_object(obj)
 
     # release is stored, but refs are not updated yet
+    with TempDir() as src_tmpdir, TempDir() as venv_tmpdir:
+        log.info('Creating new virtualenv...')
+        log.debug(venv_tmpdir.name)
+        virtualenv.create_environment(venv_tmpdir.name, use_distribute=True)
+
+        log.info('Checking out release commit...')
+        log.debug(src_tmpdir.name)
+        export_to_dir(repo, release_commit.id, src_tmpdir.name)
+
+        log.info('Creating source distribution...')
+        with dirch(src_tmpdir.name):
+            pip = os.path.join(venv_tmpdir.name, 'bin', 'pip')
+            python = os.path.join(venv_tmpdir.name, 'bin', 'python')
+            log.debug('PIP: %s' % pip)
+            log.debug('Python: %s' % python)
+
+            checked_output([python, 'setup.py', 'sdist'])
+            dist_files = os.listdir(os.path.join(src_tmpdir.name, 'dist'))
+            if not len(dist_files) == 1:
+                raise ReleaseError('Extra files in dist-dir: %r' % dist_files)
+
+            # we've built a valid package
+            pkgfn = os.path.join(src_tmpdir.name, 'dist', dist_files[0])
+            log.info('Successfully built %s' % pkgfn)
+
+            # install into virtualenv
+            log.info('Trying install into virtualenv...')
+            checked_output([pip, 'install', pkgfn])
+
+            # package installs fine, all is well
+            log.info('Running tests...')
+            checked_output([python, 'setup.py', 'test'])
 
     # update heads
     log.info('Setting %s to %s' % (refname, dev_commit.id))
@@ -215,6 +272,10 @@ def action_create_release(args, repo):
 
 def main():
     import argparse
+
+    from logbook.more import ColorizedStderrHandler
+    handler = ColorizedStderrHandler()
+    handler.push_application()
 
     default_footer = ('\n\nCommit using `release 0.1dev <'
                       'http://pypi.python.org/pypi/release>`_.')
