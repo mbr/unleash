@@ -16,7 +16,7 @@ import verlib
 from tempdir import TempDir
 import virtualenv
 
-log = logbook.Logger('release')
+log = logbook.Logger('unleash')
 
 
 class ReleaseError(Exception):
@@ -277,8 +277,8 @@ def main():
     handler = ColorizedStderrHandler()
     handler.push_application()
 
-    default_footer = ('\n\nCommit using `release 0.1dev <'
-                      'http://pypi.python.org/pypi/release>`_.')
+    default_footer = ('\n\nCommit using `unleash 0.1dev <'
+                      'http://pypi.python.org/pypi/unleash>`_.')
 
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='action')
