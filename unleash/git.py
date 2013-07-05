@@ -12,6 +12,34 @@ from .version import find_assign, replace_assign
 log = logbook.Logger('git')
 
 
+def add_path_to_tree(repo, tree, path, obj_mode, obj_id):
+    parts = path.split('/')
+    objects_to_update = []
+
+    def _add(tree, parts):
+        if len(parts) == 1:
+            tree.add(parts[0], obj_mode, obj_id)
+            objects_to_update.append(tree)
+            return tree.id
+
+        # there are more parts left
+        subtree_name = parts.pop(0)
+
+        # existing subtree?
+        subtree_mode, subtree_id = tree[subtree_name]
+        subtree = repo.object_store[subtree_id]
+        # will raise KeyError if the parent directory does not exist
+
+        # add remainder to subtree
+        tree.add(subtree_name, subtree_mode, _add(subtree, parts))
+
+        # update tree
+        objects_to_update.append(tree)
+
+    _add(tree, parts)
+    return objects_to_update
+
+
 def export_to_dir(repo, commit_id, output_dir):
     tree_id = repo.object_store[commit_id].tree
     export_tree(repo, tree_id, output_dir)
@@ -45,7 +73,7 @@ def export_tree(repo, tree_id, output_dir):
 
 
 def prepare_commit(repo, parent_commit_id, new_version, author, message):
-    objects_to_add = []
+    objects_to_add = set()
 
     log.debug('Preparing new commit for version %s based on %s' % (
         new_version, parent_commit_id,
@@ -56,12 +84,34 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
     setuppy_mode, setuppy_id = tree['setup.py']
     setuppy = repo.object_store[setuppy_id]
 
+    # get __init__.py's
+    pkg_name = find_assign(setuppy.data, 'name')
+    log.debug('Package name is %s' % pkg_name)
+    pkg_init_fn = '%s/__init__.py' % pkg_name
+
+    try:
+        (pkg_init_mode, pkg_init_id) =\
+            tree.lookup_path(repo.object_store.__getitem__, pkg_init_fn)
+    except KeyError:
+        log.debug('Did not find %s' % pkg_init_fn)
+    else:
+        log.debug('Found %s' % pkg_init_fn)
+        pkg_init = repo.object_store[pkg_init_id]
+        release_pkg_init = Blob.from_string(
+            replace_assign(pkg_init.data, '__version__', str(new_version))
+        )
+        objects_to_add.add(release_pkg_init)
+        objects_to_add.update(
+            add_path_to_tree(
+                repo, tree, pkg_init_fn, pkg_init_mode, release_pkg_init.id
+            ))
+
     release_setup = Blob.from_string(replace_assign(setuppy.data, 'version',
                                      str(new_version)))
-    tree['setup.py'] = (setuppy_mode, release_setup.id)
+    tree.add('setup.py', setuppy_mode, release_setup.id)
 
-    objects_to_add.append(release_setup)
-    objects_to_add.append(tree)
+    objects_to_add.add(release_setup)
+    objects_to_add.add(tree)
 
     now = int(time.time())
     new_commit = Commit()
@@ -83,7 +133,7 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
 
     new_commit.encoding = 'utf8'
     new_commit.message = message
-    objects_to_add.append(new_commit)
+    objects_to_add.add(new_commit)
 
     # check objects
     for obj in objects_to_add:
