@@ -149,7 +149,7 @@ def action_publish(args, repo):
     log.info('Checking out %s (%s)...' % (args.version, commit_id))
 
     with tmp_checkout(repo, commit_id) as src, tmp_virtualenv() as venv:
-        log.info('Publishing to PyPI...')
+        log.info('Uploading to PyPI...')
         with dirch(src):
             python = os.path.join(venv, 'bin', 'python')
             log.debug('Python: %s' % python)
