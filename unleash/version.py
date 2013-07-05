@@ -24,24 +24,28 @@ class NormalizedVersion(verlib.NormalizedVersion):
 
 
 _quotes = "['|\"|\"\"\"]"
-BASE_VERSION_PATTERN = r'(%s=\s*[ubr]?' + _quotes + r')(.*?)(' + _quotes + r')'
+BASE_ASSIGN_PATTERN = r'(%s=\s*[ubr]?' + _quotes + r')(.*?)(' + _quotes + r')'
+
+
+def find_assign(data, varname):
+    ASSIGN_RE = re.compile(BASE_ASSIGN_PATTERN % varname)
+
+    if len(ASSIGN_RE.findall(data)) != 1:
+        raise ValueError('Found multiple %s-strings.' % varname)
+
+    return ASSIGN_RE.search(data).group(2)
 
 
 def find_version(data, varname):
-    VERSION_RE = re.compile(BASE_VERSION_PATTERN % varname)
-
-    if len(VERSION_RE.findall(data)) != 1:
-        raise ValueError('Found multiple %s-strings.' % varname)
-
     return NormalizedVersion.suggest_from_string(
-        VERSION_RE.search(data).group(2)
+        find_assign(data, varname)
     )
 
 
-def replace_version(data, varname, new_version):
-    VERSION_RE = re.compile(BASE_VERSION_PATTERN % varname)
+def replace_assign(data, varname, new_value):
+    ASSIGN_RE = re.compile(BASE_ASSIGN_PATTERN % varname)
 
     def repl(m):
-        return m.group(1) + new_version + m.group(3)
+        return m.group(1) + new_value + m.group(3)
 
-    return VERSION_RE.sub(repl, data)
+    return ASSIGN_RE.sub(repl, data)

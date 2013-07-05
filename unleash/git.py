@@ -7,7 +7,7 @@ from dateutil.tz import tzlocal
 from dulwich.objects import S_ISGITLINK, Blob, Commit
 import logbook
 
-from .version import replace_version
+from .version import find_assign, replace_assign
 
 log = logbook.Logger('git')
 
@@ -56,7 +56,7 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
     setuppy_mode, setuppy_id = tree['setup.py']
     setuppy = repo.object_store[setuppy_id]
 
-    release_setup = Blob.from_string(replace_version(setuppy.data, 'version',
+    release_setup = Blob.from_string(replace_assign(setuppy.data, 'version',
                                      str(new_version)))
     tree['setup.py'] = (setuppy_mode, release_setup.id)
 
