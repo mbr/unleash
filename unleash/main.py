@@ -5,9 +5,8 @@ from dulwich.repo import Repo
 
 import logbook
 from tempdir import TempDir
-import virtualenv
 
-from .util import dirch, checked_output, confirm
+from .util import dirch, checked_output, confirm, tmp_virtualenv
 from .exc import ReleaseError
 from .version import NormalizedVersion, find_version
 from .git import export_to_dir, prepare_commit
@@ -79,19 +78,15 @@ def action_create_release(args, repo):
         repo.object_store.add_object(obj)
 
     # release is stored, but refs are not updated yet
-    with TempDir() as src_tmpdir, TempDir() as venv_tmpdir:
-        log.info('Creating new virtualenv...')
-        log.debug(venv_tmpdir.name)
-        virtualenv.create_environment(venv_tmpdir.name, use_distribute=True)
-
+    with TempDir() as src_tmpdir, tmp_virtualenv() as venv:
         log.info('Checking out release commit...')
         log.debug(src_tmpdir.name)
         export_to_dir(repo, release_commit.id, src_tmpdir.name)
 
         log.info('Creating source distribution...')
         with dirch(src_tmpdir.name):
-            pip = os.path.join(venv_tmpdir.name, 'bin', 'pip')
-            python = os.path.join(venv_tmpdir.name, 'bin', 'python')
+            pip = os.path.join(venv, 'bin', 'pip')
+            python = os.path.join(venv, 'bin', 'python')
             log.debug('PIP: %s' % pip)
             log.debug('Python: %s' % python)
 
@@ -106,7 +101,7 @@ def action_create_release(args, repo):
 
             # change into venv dir, so we try to install without the source
             # dir present
-            with dirch(venv_tmpdir.name):
+            with dirch(venv):
                 # install into virtualenv
                 log.info('Trying install into virtualenv...')
                 checked_output([pip, 'install', pkgfn])

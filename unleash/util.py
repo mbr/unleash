@@ -4,6 +4,8 @@ import subprocess
 import sys
 
 import logbook
+from tempdir import TempDir
+import virtualenv
 
 log = logbook.Logger('util')
 
@@ -14,6 +16,15 @@ def dirch(dir):
     os.chdir(dir)
     yield
     os.chdir(prev)
+
+
+@contextlib.contextmanager
+def tmp_virtualenv():
+    with TempDir() as tmpdir:
+        log.info('Creating new virtualenv...')
+        log.debug(tmpdir.name)
+        virtualenv.create_environment(tmpdir.name, use_distribute=True)
+        yield os.path.abspath(tmpdir.name)
 
 
 def checked_output(cmd, *args, **kwargs):
