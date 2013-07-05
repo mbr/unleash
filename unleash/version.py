@@ -24,7 +24,8 @@ class NormalizedVersion(verlib.NormalizedVersion):
 
 
 _quotes = "['|\"|\"\"\"]"
-BASE_ASSIGN_PATTERN = r'(%s=\s*[ubr]?' + _quotes + r')(.*?)(' + _quotes + r')'
+BASE_ASSIGN_PATTERN = r'(%s\s*=\s*[ubr]?' + _quotes + r')(.*?)(' +\
+                      _quotes + r')'
 
 
 def find_assign(data, varname):
