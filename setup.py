@@ -24,10 +24,7 @@ setup(
     install_requires=[],
     entry_points={
         'console_scripts': [
-            'commandname = package:func',
+            'unleash = unleash.main:main',
         ],
-        'gui_scripts': [
-            'commandname = package:func',
-        ]
     }
 )

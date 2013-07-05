@@ -1,171 +1,18 @@
 #!/usr/bin/env python
-
-from datetime import datetime
-from dateutil.tz import tzlocal
-import contextlib
-import re
 import os
-import subprocess
-import time
 
 from dulwich.repo import Repo
-from dulwich.objects import S_ISGITLINK, Blob, Commit
-from stat import S_ISLNK, S_ISDIR, S_ISREG
+
 import logbook
-import verlib
 from tempdir import TempDir
 import virtualenv
 
+from .util import dirch, checked_output
+from .exc import ReleaseError
+from .version import NormalizedVersion, find_version
+from .git import export_to_dir, prepare_commit
+
 log = logbook.Logger('unleash')
-
-
-class ReleaseError(Exception):
-    pass
-
-
-@contextlib.contextmanager
-def dirch(dir):
-    prev = os.getcwd()
-    os.chdir(dir)
-    yield
-    os.chdir(prev)
-
-
-def get_local_tz_offset(ltz, now):
-    offset = ltz.utcoffset(now)
-    offset = abs(offset)
-
-    return offset.days * 24 * 60 * 60 + offset.seconds, False
-
-
-class NormalizedVersion(verlib.NormalizedVersion):
-    def increment(self):
-        main = list(self.parts[0])
-        main[-1] += 1
-        self.parts = (tuple(main), verlib.FINAL_MARKER, verlib.FINAL_MARKER)
-
-    def set_dev_version(self, num=1):
-        self.parts = (self.parts[0], verlib.FINAL_MARKER, ('dev%d' % num,))
-
-    def drop_extras(self):
-        main, prerel, postdev = self.parts
-        self.parts = (main, verlib.FINAL_MARKER, verlib.FINAL_MARKER)
-
-    def copy(self):
-        return self.__class__(str(self))
-
-
-def export_to_dir(repo, commit_id, output_dir):
-    tree_id = repo.object_store[commit_id].tree
-    export_tree(repo, tree_id, output_dir)
-
-
-def export_tree(repo, tree_id, output_dir):
-    # we assume output_dir exists and is empty
-    if os.listdir(output_dir):
-        raise ValueError('Directory %s not empty' % output_dir)
-
-    for entry in repo.object_store[tree_id].iteritems():
-        output_path = os.path.join(output_dir, entry.path)
-
-        if S_ISGITLINK(entry.mode):
-            raise ValueError('Does not support submodules')
-        elif S_ISDIR(entry.mode):
-            os.mkdir(output_path)  # mode parameter here is umasked, use chmod
-            os.chmod(output_path, 0755)
-            log.debug('created %s' % output_path)
-            export_tree(repo, entry.sha, os.path.join(output_dir, output_path))
-        elif S_ISLNK(entry.mode):
-            log.debug('link %s' % output_path)
-            os.symlink(repo.object_store[entry.sha].data, output_path)
-        elif S_ISREG(entry.mode):
-            with open(output_path, 'wb') as out:
-                for chunk in repo.object_store[entry.sha].chunked:
-                    out.write(chunk)
-            log.debug('wrote %s' % output_path)
-        else:
-            raise ValueError('Cannot deal with mode of %s' % entry)
-
-
-_quotes = "['|\"|\"\"\"]"
-BASE_VERSION_PATTERN = r'(%s=\s*[ubr]?' + _quotes + r')(.*?)(' + _quotes + r')'
-
-
-def find_version(data, varname):
-    VERSION_RE = re.compile(BASE_VERSION_PATTERN % varname)
-
-    if len(VERSION_RE.findall(data)) != 1:
-        raise ValueError('Found multiple %s-strings.' % varname)
-
-    return NormalizedVersion(verlib.suggest_normalized_version(
-        VERSION_RE.search(data).group(2)
-    ))
-
-
-def replace_version(data, varname, new_version):
-    VERSION_RE = re.compile(BASE_VERSION_PATTERN % varname)
-
-    def repl(m):
-        return m.group(1) + new_version + m.group(3)
-
-    return VERSION_RE.sub(repl, data)
-
-
-def prepare_commit(repo, parent_commit_id, new_version, author, message):
-    objects_to_add = []
-
-    log.debug('Preparing new commit for version %s based on %s' % (
-        new_version, parent_commit_id,
-    ))
-    tree = repo.object_store[repo.object_store[parent_commit_id].tree]
-
-    # get setup.py
-    setuppy_mode, setuppy_id = tree['setup.py']
-    setuppy = repo.object_store[setuppy_id]
-
-    release_setup = Blob.from_string(replace_version(setuppy.data, 'version',
-                                     str(new_version)))
-    tree['setup.py'] = (setuppy_mode, release_setup.id)
-
-    objects_to_add.append(release_setup)
-    objects_to_add.append(tree)
-
-    now = int(time.time())
-    new_commit = Commit()
-    new_commit.parents = [parent_commit_id]
-
-    new_commit.tree = tree.id
-
-    new_commit.author = author
-    new_commit.committer = author
-
-    new_commit.commit_time = now
-    new_commit.author_time = now
-
-    now = int(time.time())
-    offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
-    timezone = offset.days * 24 * 60 * 60 + offset.seconds
-    new_commit.commit_timezone = timezone
-    new_commit.author_timezone = timezone
-
-    new_commit.encoding = 'utf8'
-    new_commit.message = message
-    objects_to_add.append(new_commit)
-
-    # check objects
-    for obj in objects_to_add:
-        obj.check()
-
-    return new_commit, tree, objects_to_add
-
-
-def checked_output(cmd, *args, **kwargs):
-    try:
-        log.debug('run %s' % ' '.join(cmd))
-        subprocess.check_output(cmd, *args, stderr=subprocess.STDOUT, **kwargs)
-    except subprocess.CalledProcessError as e:
-        log.error('Error calling external process.\n%s' % e.output)
-        raise
 
 
 def action_create_release(args, repo):
@@ -315,7 +162,3 @@ def main():
     func = globals()['action_' + args.action.replace('-', '_')]
 
     return func(args=args, repo=repo)
-
-
-if __name__ == '__main__':
-    main()
