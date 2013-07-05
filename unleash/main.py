@@ -33,7 +33,7 @@ def action_create_release(args, repo):
 
     # find the version in setup.py
     version = find_version(setuppy.data, 'version')
-    log.info('Version on branch is %s' % version)
+    log.debug('Version on branch is %s' % version)
 
     if args.release_version is None:
         release_version = version.copy()
@@ -51,8 +51,8 @@ def action_create_release(args, repo):
     else:
         dev_version = NormalizedVersion(args.dev_version)
 
-    log.info('Release version %s' % release_version)
-    log.info('Next dev version %s' % dev_version)
+    log.debug('Release version %s' % release_version)
+    log.debug('Next dev version %s' % dev_version)
     confirm('Release version %s, increase dev version to %s?' % (
         release_version, dev_version,
     ))
@@ -131,8 +131,7 @@ def main():
     import argparse
 
     from logbook.more import ColorizedStderrHandler
-    handler = ColorizedStderrHandler(format_string='{record.message}')
-    handler.push_application()
+    from logbook.handlers import NullHandler
 
     default_footer = ('\n\nCommit using `unleash 0.1dev <'
                       'http://pypi.python.org/pypi/unleash>`_.')
@@ -149,6 +148,8 @@ def main():
                         action='store_true',
                         help='Do not ask for confirmation before committing '
                              'changes to anything.')
+    parser.add_argument('-d', '--debug', default=logbook.INFO, dest='loglevel',
+                        action='store_const', const=logbook.DEBUG)
     create_release = sub.add_parser('create-release')
     create_release.add_argument('-b', '--branch', default='master')
     create_release.add_argument('-v', '--release-version', default=None)
@@ -160,6 +161,10 @@ def main():
                                 )
 
     args = parser.parse_args()
+
+    NullHandler().push_application()
+    ColorizedStderrHandler(format_string='{record.message}',
+                           level=args.loglevel).push_application()
 
     # first, determine current version
     repo = Repo(args.root)
