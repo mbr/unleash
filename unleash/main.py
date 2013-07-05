@@ -6,7 +6,7 @@ from dulwich.repo import Repo
 import logbook
 from tempdir import TempDir
 
-from .util import dirch, checked_output, confirm, tmp_virtualenv
+from .util import dirch, checked_output, confirm, tmp_virtualenv, tmp_checkout
 from .exc import ReleaseError
 from .version import NormalizedVersion, find_version
 from .git import export_to_dir, prepare_commit
@@ -78,25 +78,23 @@ def action_create_release(args, repo):
         repo.object_store.add_object(obj)
 
     # release is stored, but refs are not updated yet
-    with TempDir() as src_tmpdir, tmp_virtualenv() as venv:
-        log.info('Checking out release commit...')
-        log.debug(src_tmpdir.name)
-        export_to_dir(repo, release_commit.id, src_tmpdir.name)
+    with tmp_checkout(repo, release_commit.id) as src,\
+            tmp_virtualenv() as venv:
 
         log.info('Creating source distribution...')
-        with dirch(src_tmpdir.name):
+        with dirch(src):
             pip = os.path.join(venv, 'bin', 'pip')
             python = os.path.join(venv, 'bin', 'python')
             log.debug('PIP: %s' % pip)
             log.debug('Python: %s' % python)
 
             checked_output([python, 'setup.py', 'sdist'])
-            dist_files = os.listdir(os.path.join(src_tmpdir.name, 'dist'))
+            dist_files = os.listdir(os.path.join(src, 'dist'))
             if not len(dist_files) == 1:
                 raise ReleaseError('Extra files in dist-dir: %r' % dist_files)
 
             # we've built a valid package
-            pkgfn = os.path.join(src_tmpdir.name, 'dist', dist_files[0])
+            pkgfn = os.path.join(src, 'dist', dist_files[0])
             log.info('Successfully built %s' % pkgfn)
 
             # change into venv dir, so we try to install without the source

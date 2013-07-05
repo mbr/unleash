@@ -7,6 +7,8 @@ import logbook
 from tempdir import TempDir
 import virtualenv
 
+from .git import export_to_dir
+
 log = logbook.Logger('util')
 
 
@@ -24,6 +26,15 @@ def tmp_virtualenv():
         log.info('Creating new virtualenv...')
         log.debug(tmpdir.name)
         virtualenv.create_environment(tmpdir.name, use_distribute=True)
+        yield os.path.abspath(tmpdir.name)
+
+
+@contextlib.contextmanager
+def tmp_checkout(repo, commit_id):
+    with TempDir() as tmpdir:
+        log.info('Checking out release commit...')
+        log.debug(tmpdir.name)
+        export_to_dir(repo, commit_id, tmpdir.name)
         yield os.path.abspath(tmpdir.name)
 
 
