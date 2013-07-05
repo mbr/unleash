@@ -1,6 +1,7 @@
 import contextlib
 import os
 import subprocess
+import sys
 
 import logbook
 
@@ -22,3 +23,21 @@ def checked_output(cmd, *args, **kwargs):
     except subprocess.CalledProcessError as e:
         log.error('Error calling external process.\n%s' % e.output)
         raise
+
+
+def yesno(question):
+    while True:
+        inp = raw_input(question + ' [y/n]: ')
+
+        if inp in ('y', 'Y', 'yes', 'YES'):
+            return True
+        elif inp in ('n', 'N', 'no', 'NO'):
+            return False
+        else:
+            print 'Please answer \'yes\' or \'no\'.'
+
+
+def confirm(question):
+    if not yesno(question):
+        log.warning('Aborted by user request.')
+        sys.exit(1)

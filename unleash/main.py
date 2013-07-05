@@ -7,7 +7,7 @@ import logbook
 from tempdir import TempDir
 import virtualenv
 
-from .util import dirch, checked_output
+from .util import dirch, checked_output, confirm
 from .exc import ReleaseError
 from .version import NormalizedVersion, find_version
 from .git import export_to_dir, prepare_commit
@@ -53,6 +53,9 @@ def action_create_release(args, repo):
 
     log.info('Release version %s' % release_version)
     log.info('Next dev version %s' % dev_version)
+    confirm('Release version %s, increase dev version to %s?' % (
+        release_version, dev_version,
+    ))
 
     msg_release = ('Release version %s.%s' % (release_version,
                                               args.commit_footer))
@@ -112,10 +115,14 @@ def action_create_release(args, repo):
             log.info('Running tests...')
             checked_output([python, 'setup.py', 'test'])
 
+    tag_refname = 'refs/tags/%s' % release_version
+    confirm('Release commits created OK, tag %s and update %s?' % (
+        tag_refname, refname)
+    )
+
     # update heads
     log.info('Setting %s to %s' % (refname, dev_commit.id))
     repo.refs[refname] = dev_commit.id
-    tag_refname = 'refs/tags/%s' % release_version
     log.info('Setting %s to %s' % (tag_refname, release_commit.id))
     repo.refs[tag_refname] = release_commit.id
 
@@ -138,6 +145,10 @@ def main():
     parser.add_argument('-a', '--author', default=None,
                         help='Author string for commits (uses git configured '
                              'settings per default')
+    parser.add_argument('-b', '--batch', default=True, dest='interactive',
+                        action='store_true',
+                        help='Do not ask for confirmation before committing '
+                             'changes to anything.')
     create_release = sub.add_parser('create-release')
     create_release.add_argument('-b', '--branch', default='master')
     create_release.add_argument('-v', '--release-version', default=None)
