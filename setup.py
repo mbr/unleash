@@ -18,7 +18,7 @@ setup(
     long_description=read('README.rst'),
     author='Marc Brinkmann',
     author_email='git@marcbrinkmann.de',
-    url='http://github.com/mbr/release',
+    url='http://github.com/mbr/unleash',
     license='MIT',
     packages=find_packages(exclude=['test']),
     install_requires=[],
