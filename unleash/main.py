@@ -131,7 +131,7 @@ def main():
     import argparse
 
     from logbook.more import ColorizedStderrHandler
-    handler = ColorizedStderrHandler()
+    handler = ColorizedStderrHandler(format_string='{record.message}')
     handler.push_application()
 
     default_footer = ('\n\nCommit using `unleash 0.1dev <'
