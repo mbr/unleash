@@ -254,9 +254,14 @@ def action_create_release(args, repo):
             pkgfn = os.path.join(src_tmpdir.name, 'dist', dist_files[0])
             log.info('Successfully built %s' % pkgfn)
 
-            # install into virtualenv
-            log.info('Trying install into virtualenv...')
-            checked_output([pip, 'install', pkgfn])
+            # change into venv dir, so we try to install without the source
+            # dir present
+            with dirch(venv_tmpdir.name):
+                import pdb
+                pdb.set_trace()
+                # install into virtualenv
+                log.info('Trying install into virtualenv...')
+                checked_output([pip, 'install', pkgfn])
 
             # package installs fine, all is well
             log.info('Running tests...')
