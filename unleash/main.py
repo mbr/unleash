@@ -4,12 +4,11 @@ import os
 from dulwich.repo import Repo
 
 import logbook
-from tempdir import TempDir
 
 from .util import dirch, checked_output, confirm, tmp_virtualenv, tmp_checkout
 from .exc import ReleaseError
 from .version import NormalizedVersion, find_version
-from .git import export_to_dir, prepare_commit
+from .git import prepare_commit
 
 log = logbook.Logger('unleash')
 
@@ -120,8 +119,50 @@ def action_create_release(args, repo):
     repo.refs[tag_refname] = release_commit.id
 
 
+def action_publish(args, repo):
+    import verlib
+
+    prefix = 'refs/tags/'
+    if args.version is None:
+        versions = []
+        for tag in repo.refs.allkeys():
+            tagname = tag[len(prefix):]
+            if not tag.startswith(prefix):
+                continue
+
+            try:
+                real_version = verlib.NormalizedVersion(tagname)
+                if not str(real_version) == tagname:
+                    log.warn('Invalid version tag %s' % tagname)
+                versions.append(real_version)
+            except verlib.IrrationalVersionError:
+                log.debug('Ignoring tag %s, invalid version')
+
+        if versions:
+            args.version = str(sorted(versions, reverse=True)[0])
+
+    log.debug('Passed version: %s' % args.version)
+    if not args.version:
+        raise ValueError('No version given and no version tag found.')
+
+    commit_id = repo.refs[prefix + args.version]
+    log.info('Checking out %s (%s)...' % (args.version, commit_id))
+
+    with tmp_checkout(repo, commit_id) as src, tmp_virtualenv() as venv:
+        log.info('Publishing to PyPI...')
+        with dirch(src):
+            python = os.path.join(venv, 'bin', 'python')
+            log.debug('Python: %s' % python)
+
+            cmd = [python, 'setup.py', 'sdist', 'upload']
+            if args.sign:
+                cmd.append('-s', '-i', args.sign)
+            checked_output(cmd)
+
+
 def main():
     import argparse
+    import sys
 
     from logbook.more import ColorizedStderrHandler
     from logbook.handlers import NullHandler
@@ -144,6 +185,7 @@ def main():
                              'changes to anything.')
     parser.add_argument('-d', '--debug', default=logbook.INFO, dest='loglevel',
                         action='store_const', const=logbook.DEBUG)
+
     create_release = sub.add_parser('create-release')
     create_release.add_argument('-b', '--branch', default='master')
     create_release.add_argument('-v', '--release-version', default=None)
@@ -153,6 +195,13 @@ def main():
                                 const='',
                                 help='Do not output footer on commit messages.'
                                 )
+
+    publish_release = sub.add_parser('publish')
+    publish_release.add_argument('-s', '--sign')
+    publish_release.add_argument('-v', '--version', default=None,
+                                 help=('Name of the tag to publish. Defaults '
+                                       'to the tag whose commit has the '
+                                       'highest readable version.'))
 
     args = parser.parse_args()
 
@@ -171,4 +220,10 @@ def main():
 
     func = globals()['action_' + args.action.replace('-', '_')]
 
-    return func(args=args, repo=repo)
+    try:
+        return func(args=args, repo=repo)
+    except Exception as e:
+        log.error(str(e))
+        if args.loglevel == logbook.DEBUG:
+            log.exception(e)
+        sys.exit(1)
