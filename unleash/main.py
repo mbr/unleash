@@ -135,10 +135,7 @@ def main():
 
     from . import __version__
 
-    default_footer = ('\n\nCommit using `unleash %s <'
-                      'http://pypi.python.org/pypi/unleash>`_.'
-                      % __version__
-                      )
+    default_footer = '\n\n(commit by unleash %s)' % __version__
 
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='action')
