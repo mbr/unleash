@@ -159,6 +159,11 @@ def action_publish(args, repo):
                 cmd.append('-s', '-i', args.sign)
             checked_output(cmd)
 
+    with dirch(repo.path):
+        log.info('Pushing tag %s to origin using git...' % args.version)
+        # FIXME: at some point, do this without git?
+        checked_output(['git', 'push', 'origin', args.version])
+
 
 def main():
     import argparse
