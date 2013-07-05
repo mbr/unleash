@@ -21,7 +21,8 @@ setup(
     url='http://github.com/mbr/unleash',
     license='MIT',
     packages=find_packages(exclude=['test']),
-    install_requires=[],
+    install_requires=['dulwich', 'logbook', 'tempdir', 'virtualenv',
+                      'python-dateutil', 'verlib'],
     entry_points={
         'console_scripts': [
             'unleash = unleash.main:main',
