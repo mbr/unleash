@@ -156,7 +156,7 @@ def action_publish(args, repo):
 
             cmd = [python, 'setup.py', 'sdist', 'upload']
             if args.sign:
-                cmd.append('-s', '-i', args.sign)
+                cmd.extend(['-s', '-i', args.sign])
             checked_output(cmd)
 
     with dirch(repo.path):
