@@ -133,8 +133,12 @@ def main():
     from logbook.more import ColorizedStderrHandler
     from logbook.handlers import NullHandler
 
-    default_footer = ('\n\nCommit using `unleash 0.1dev <'
-                      'http://pypi.python.org/pypi/unleash>`_.')
+    from . import __version__
+
+    default_footer = ('\n\nCommit using `unleash %s <'
+                      'http://pypi.python.org/pypi/unleash>`_.'
+                      % __version__
+                      )
 
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest='action')
