@@ -14,19 +14,6 @@ log = logbook.Logger('unleash')
 
 
 def action_create_release(args, repo):
-    # sanity checks
-    if not repo.bare and repo.has_index():
-        index = repo.open_index()
-        changes = list(
-            index.changes_from_tree(repo.object_store, repo['HEAD'].tree)
-        )
-
-        if changes:
-            raise ValueError('Repository is not bare and has changes staged.')
-
-        if diff_tree(repo, repo['HEAD'].tree):
-            raise ValueError('Uncommitted changes in repository.')
-
     refname = 'refs/heads/%s' % args.branch
     if not refname in repo.refs:
         raise ValueError('Could not find %s' % refname)
@@ -125,11 +112,48 @@ def action_create_release(args, repo):
         tag_refname, refname)
     )
 
+    old_branch_id = repo[refname].id
+    old_head_id = repo['HEAD'].id
+
     # update heads
     log.info('Setting %s to %s' % (refname, dev_commit.id))
     repo.refs[refname] = dev_commit.id
     log.info('Setting %s to %s' % (tag_refname, release_commit.id))
     repo.refs[tag_refname] = release_commit.id
+
+    if repo.bare:
+        log.info('Not checking out new working copy because repository is '
+                 'bare.')
+    else:
+        check_out = True
+        if old_head_id != old_branch_id:
+            # FIXME: this is incorrect, HEAD is a link-ref
+            log.warning('No checkout out %s because HEAD is different.' % (
+                refname
+            ))
+        elif repo.has_index():
+            log.debug('Found index, checking for changes')
+
+            index = repo.open_index()
+            changes = list(
+                index.changes_from_tree(repo.object_store, repo['HEAD'].tree)
+            )
+
+            if changes:
+                log.warning('Not updating HEAD or checking out, because '
+                            'repository has staged changes.')
+                check_out = False
+
+        if check_out:
+            if diff_tree(repo, repo['HEAD'].tree):
+                log.warning('Uncommitted changes in repository, not updating '
+                            'working copy.')
+            check_out = False
+
+        if check_out:
+            log.debug('Setting HEAD to %s' % dev_commit.id)
+            confirm('Perform git reset --hard?')
+            checked_output(['git', 'reset', '--hard'], cwd=repo.path)
 
 
 def action_publish(args, repo):
