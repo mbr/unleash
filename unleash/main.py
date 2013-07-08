@@ -14,6 +14,16 @@ log = logbook.Logger('unleash')
 
 
 def action_create_release(args, repo):
+    # sanity checks
+    if not repo.bare:
+        index = repo.open_index()
+        changes = list(
+            index.changes_from_tree(repo.object_store, repo['HEAD'].tree)
+        )
+
+        if changes:
+            raise ValueError('Repository is not bare and has changes staged.')
+
     refname = 'refs/heads/%s' % args.branch
     if not refname in repo.refs:
         raise ValueError('Could not find %s' % refname)
