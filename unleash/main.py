@@ -18,14 +18,14 @@ def action_create_release(args, repo):
     if not refname in repo.refs:
         raise ValueError('Could not find %s' % refname)
 
-    commit_id = repo.refs[refname]
-    tree = repo.object_store[repo.object_store[commit_id].tree]
+    commit = repo[refname]
+    tree = repo[commit.tree]
     log.debug('tree found: %s' % tree.id)
 
     # retrieve version from setup.py
     try:
         setuppy_mode, setuppy_id = tree['setup.py']
-        setuppy = repo.object_store[setuppy_id]
+        setuppy = repo[setuppy_id]
     except KeyError:
         raise KeyError('setup.py not found in repository root')
 
@@ -62,10 +62,10 @@ def action_create_release(args, repo):
 
     # prepare the commits
     release_commit, release_tree, release_objs = prepare_commit(
-        repo, commit_id, release_version, args.author, msg_release
+        repo, commit.id, release_version, args.author, msg_release
     )
     dev_commit, dev_tree, dev_objs = prepare_commit(
-        repo, commit_id, dev_version, args.author, msg_dev
+        repo, commit.id, dev_version, args.author, msg_dev
     )
 
     objects_to_add = []
@@ -145,10 +145,10 @@ def action_publish(args, repo):
     if not args.version:
         raise ValueError('No version given and no version tag found.')
 
-    commit_id = repo.refs[prefix + args.version]
-    log.info('Checking out %s (%s)...' % (args.version, commit_id))
+    commit = repo[prefix + args.version]
+    log.info('Checking out %s (%s)...' % (args.version, commit.id))
 
-    with tmp_checkout(repo, commit_id) as src, tmp_virtualenv() as venv:
+    with tmp_checkout(repo, commit.id) as src, tmp_virtualenv() as venv:
         log.info('Uploading to PyPI...')
         with dirch(src):
             python = os.path.join(venv, 'bin', 'python')

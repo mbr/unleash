@@ -27,7 +27,7 @@ def add_path_to_tree(repo, tree, path, obj_mode, obj_id):
 
         # existing subtree?
         subtree_mode, subtree_id = tree[subtree_name]
-        subtree = repo.object_store[subtree_id]
+        subtree = repo[subtree_id]
         # will raise KeyError if the parent directory does not exist
 
         # add remainder to subtree
@@ -41,7 +41,7 @@ def add_path_to_tree(repo, tree, path, obj_mode, obj_id):
 
 
 def export_to_dir(repo, commit_id, output_dir):
-    tree_id = repo.object_store[commit_id].tree
+    tree_id = repo[commit_id].tree
     export_tree(repo, tree_id, output_dir)
 
 
@@ -50,7 +50,7 @@ def export_tree(repo, tree_id, output_dir):
     if os.listdir(output_dir):
         raise ValueError('Directory %s not empty' % output_dir)
 
-    for entry in repo.object_store[tree_id].iteritems():
+    for entry in repo[tree_id].iteritems():
         output_path = os.path.join(output_dir, entry.path)
 
         if S_ISGITLINK(entry.mode):
@@ -62,10 +62,10 @@ def export_tree(repo, tree_id, output_dir):
             export_tree(repo, entry.sha, os.path.join(output_dir, output_path))
         elif S_ISLNK(entry.mode):
             log.debug('link %s' % output_path)
-            os.symlink(repo.object_store[entry.sha].data, output_path)
+            os.symlink(repo[entry.sha].data, output_path)
         elif S_ISREG(entry.mode):
             with open(output_path, 'wb') as out:
-                for chunk in repo.object_store[entry.sha].chunked:
+                for chunk in repo[entry.sha].chunked:
                     out.write(chunk)
             log.debug('wrote %s' % output_path)
         else:
@@ -78,11 +78,11 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
     log.debug('Preparing new commit for version %s based on %s' % (
         new_version, parent_commit_id,
     ))
-    tree = repo.object_store[repo.object_store[parent_commit_id].tree]
+    tree = repo[repo[parent_commit_id].tree]
 
     # get setup.py
     setuppy_mode, setuppy_id = tree['setup.py']
-    setuppy = repo.object_store[setuppy_id]
+    setuppy = repo[setuppy_id]
 
     # get __init__.py's
     pkg_name = find_assign(setuppy.data, 'name')
@@ -96,7 +96,7 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
         log.debug('Did not find %s' % pkg_init_fn)
     else:
         log.debug('Found %s' % pkg_init_fn)
-        pkg_init = repo.object_store[pkg_init_id]
+        pkg_init = repo[pkg_init_id]
         release_pkg_init = Blob.from_string(
             replace_assign(pkg_init.data, '__version__', str(new_version))
         )
