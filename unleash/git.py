@@ -40,6 +40,35 @@ def add_path_to_tree(repo, tree, path, obj_mode, obj_id):
     return objects_to_update
 
 
+def diff_tree(repo, tree_id, path=None):
+    # FIXME: code a proper diff function, add to dulwich?
+    if path is None:
+        path = repo.path
+
+    for entry in repo[tree_id].iteritems():
+        fpath = os.path.join(path, entry.path)
+        if not os.path.exists(fpath):
+            return True  # an entry that should exist does not exist
+
+        if S_ISGITLINK(entry.mode):
+            raise NotImplementedError('Does not support submodules')
+        elif S_ISDIR(entry.mode):
+            if diff_tree(repo, entry.sha, fpath):
+                return True  # a subdir differs
+        elif S_ISLNK(entry.mode):
+            raise NotImplementedError('Symlinks currently not supported')
+        elif S_ISREG(entry.mode):
+            with open(fpath, 'rb') as f:
+                b = Blob.from_string(f.read())
+                if not b.id == entry.sha:
+                    log.debug('File %s differs' % fpath)
+                    return True
+        else:
+            raise ValueError('Cannot deal with mode of %s' % entry)
+
+    return False
+
+
 def export_to_dir(repo, commit_id, output_dir):
     tree_id = repo[commit_id].tree
     export_tree(repo, tree_id, output_dir)

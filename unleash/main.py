@@ -8,14 +8,14 @@ import logbook
 from .util import dirch, checked_output, confirm, tmp_virtualenv, tmp_checkout
 from .exc import ReleaseError
 from .version import NormalizedVersion, find_version
-from .git import prepare_commit
+from .git import prepare_commit, diff_tree
 
 log = logbook.Logger('unleash')
 
 
 def action_create_release(args, repo):
     # sanity checks
-    if not repo.bare:
+    if not repo.bare and repo.has_index():
         index = repo.open_index()
         changes = list(
             index.changes_from_tree(repo.object_store, repo['HEAD'].tree)
@@ -23,6 +23,9 @@ def action_create_release(args, repo):
 
         if changes:
             raise ValueError('Repository is not bare and has changes staged.')
+
+        if diff_tree(repo, repo['HEAD'].tree):
+            raise ValueError('Uncommitted changes in repository.')
 
     refname = 'refs/heads/%s' % args.branch
     if not refname in repo.refs:
