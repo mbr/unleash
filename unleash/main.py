@@ -136,7 +136,7 @@ def action_create_release(args, repo):
                 log.warning('Index was not clean, not checking out new copy.')
             else:
                 # FIXME: missing - check if working copy has changes
-                log.warning('(not implemend): Should update index.')
+                log.warning('(not implemented): Should update index.')
 
 
 def action_publish(args, repo):
