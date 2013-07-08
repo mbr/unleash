@@ -112,48 +112,25 @@ def action_create_release(args, repo):
         tag_refname, refname)
     )
 
-    old_branch_id = repo[refname].id
-    old_head_id = repo['HEAD'].id
-
     # update heads
     log.info('Setting %s to %s' % (refname, dev_commit.id))
     repo.refs[refname] = dev_commit.id
     log.info('Setting %s to %s' % (tag_refname, release_commit.id))
     repo.refs[tag_refname] = release_commit.id
 
-    if repo.bare:
-        log.info('Not checking out new working copy because repository is '
-                 'bare.')
-    else:
-        check_out = True
-        if old_head_id != old_branch_id:
-            # FIXME: this is incorrect, HEAD is a link-ref
-            log.warning('No checkout out %s because HEAD is different.' % (
-                refname
-            ))
-        elif repo.has_index():
-            log.debug('Found index, checking for changes')
+    if not repo.bare:
+        repo_prefix = 'ref: '
 
-            index = repo.open_index()
-            changes = list(
-                index.changes_from_tree(repo.object_store, repo['HEAD'].tree)
-            )
-
-            if changes:
-                log.warning('Not updating HEAD or checking out, because '
-                            'repository has staged changes.')
-                check_out = False
-
-        if check_out:
-            if diff_tree(repo, repo['HEAD'].tree):
-                log.warning('Uncommitted changes in repository, not updating '
-                            'working copy.')
-            check_out = False
-
-        if check_out:
-            log.debug('Setting HEAD to %s' % dev_commit.id)
-            confirm('Perform git reset --hard?')
-            checked_output(['git', 'reset', '--hard'], cwd=repo.path)
+        # if HEAD points to the updated branch, update the index
+        if not repo.refs.read_ref('HEAD') == repo_prefix + refname:
+            log.warning('HEAD does not point to %s, but %s. Will not update '
+                        'index.' % (refname, repo.refs.read_ref('HEAD')))
+        elif not repo.has_index():
+            log.warning('Repo has no index. Why?')
+        else:
+            # update the index
+            import pdb
+            pdb.set_trace()
 
 
 def action_publish(args, repo):
