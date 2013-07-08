@@ -128,9 +128,15 @@ def action_create_release(args, repo):
         elif not repo.has_index():
             log.warning('Repo has no index. Why?')
         else:
-            # update the index
-            import pdb
-            pdb.set_trace()
+            index = repo.open_index()
+            if [c for c in index.changes_from_tree(
+                repo.object_store, repo[dev_commit.parents[0]].tree)
+            ]:
+                # the index has wasn't clean before
+                log.warning('Index was not clean, not checking out new copy.')
+            else:
+                # FIXME: missing - check if working copy has changes
+                log.warning('(not implemend): Should update index.')
 
 
 def action_publish(args, repo):
