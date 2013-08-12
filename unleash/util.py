@@ -25,7 +25,7 @@ def tmp_virtualenv():
     with TempDir() as tmpdir:
         log.info('Creating new virtualenv...')
         log.debug(tmpdir)
-        virtualenv.create_environment(tmpdir, use_distribute=True)
+        virtualenv.create_environment(tmpdir)
         yield os.path.abspath(tmpdir)
 
 
