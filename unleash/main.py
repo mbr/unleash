@@ -17,8 +17,9 @@ def build_docs(src, python):
     if not os.path.exists(os.path.join(src, 'docs')):
         log.warning("No documentation found (missing 'docs' dir)")
     else:
-        log.info('Building documentation')
-        checked_output([python, 'setup.py', 'build_sphinx'])
+        with dirch(src):
+            log.info('Building documentation')
+            checked_output([python, 'setup.py', 'build_sphinx'])
 
 
 def action_create_release(args, repo):
