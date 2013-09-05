@@ -14,13 +14,20 @@ log = logbook.Logger('unleash')
 
 
 def build_docs(src, python, pip):
-    if not os.path.exists(os.path.join(src, 'docs')):
-        log.warning("No documentation found (missing 'docs' dir)")
+    DOCS = 'docs'
+    docs_dir = os.path.join(src, DOCS)
+    build_dir = os.path.join(src, '_unleash-docs-build')
+
+    if not os.path.exists(docs_dir):
+        log.warning("No documentation found (missing '%s' dir)" % DOCS)
     else:
         with dirch(src):
             log.info('Building documentation')
             checked_output([pip, 'install', 'sphinx'])
-            checked_output([python, 'setup.py', 'build_sphinx'])
+            checked_output([python, 'setup.py', 'build_sphinx',
+                            '--source-dir', docs_dir,
+                            '--build-dir', build_dir])
+        return build_dir
 
 
 def action_create_release(args, repo):
@@ -185,12 +192,22 @@ def action_publish(args, repo):
         log.info('Uploading to PyPI...')
         with dirch(src):
             python = os.path.join(venv, 'bin', 'python')
+            pip = os.path.join(venv, 'bin', 'pip')
             log.debug('Python: %s' % python)
 
             cmd = [python, 'setup.py', 'sdist', 'upload']
             if args.sign:
                 cmd.extend(['-s', '-i', args.sign])
             checked_output(cmd)
+
+            docs_build_dir = build_docs(src, python, pip)
+            if docs_build_dir:
+                # docs were built, upload them
+                log.info('Uploading documentation')
+                checked_output([pip, 'install', 'sphinx-pypi-upload'])
+                cmd = [python, 'setup.py', 'upload_sphinx', '--upload-dir',
+                       os.path.join(docs_build_dir, 'html')]
+                checked_output(cmd)
 
     with dirch(repo.path):
         log.info('Pushing tag %s to origin using git...' % args.version)
