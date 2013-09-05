@@ -23,6 +23,7 @@ This will:
     have had their version strings updated to the new version.
   * Check out the commit in a temporary directory, alongside a clean
     `virtualenv <http://virtualenv.org>`_.
+  * Check if the documentation, if present, can be built correctly.
   * Generate an ``sdist`` package from the checked out commit and see if it
     cleanly installs inside the virtualenv.
   * Runs unittests inside the virtualenv.
@@ -47,5 +48,6 @@ This will:
   * Check out the latest version tag into a temporary directory.
   * Build a source package.
   * Upload and sign it (``python setup.py sdist -s -i code``).
+  * Upload the documentation, if present, to pythonhosted.org (PyPI).
   * Push the associated git tag to origin.
   * Clean up the temporary directory.
