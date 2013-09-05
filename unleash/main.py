@@ -13,7 +13,7 @@ from .git import prepare_commit, diff_tree
 log = logbook.Logger('unleash')
 
 
-def build_docs(srcdir, python):
+def build_docs(src, python):
     if not os.path.exists(os.path.join(src, 'docs')):
         log.warning("No documentation found (missing 'docs' dir)")
     else:
