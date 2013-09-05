@@ -13,12 +13,13 @@ from .git import prepare_commit, diff_tree
 log = logbook.Logger('unleash')
 
 
-def build_docs(src, python):
+def build_docs(src, python, pip):
     if not os.path.exists(os.path.join(src, 'docs')):
         log.warning("No documentation found (missing 'docs' dir)")
     else:
         with dirch(src):
             log.info('Building documentation')
+            checked_output([pip, 'install', 'sphinx'])
             checked_output([python, 'setup.py', 'build_sphinx'])
 
 
@@ -113,7 +114,7 @@ def action_create_release(args, repo):
                 checked_output([pip, 'install', pkgfn])
 
                 # ensure docs can be built in release
-                build_docs(src, python)
+                build_docs(src, python, pip)
 
             # package installs fine, all is well
             log.info('Running tests...')
