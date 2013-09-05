@@ -148,8 +148,9 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
         docconf_mode, docconf_id = tree.lookup_path(
             repo.object_store.__getitem__, docconf_fn)
     except KeyError:
-        log.warning('No documentation found (missing %r)' % docconf_fn)
+        log.warning('No documentation found (missing %s)' % docconf_fn)
     else:
+        log.debug('Found %s' % docconf_fn)
         # got docs, update version numbers in those as well
         docconf = repo[docconf_id]
         release_docconf_data = docconf.data
