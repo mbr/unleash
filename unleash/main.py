@@ -221,6 +221,8 @@ def main():
                              'changes to anything.')
     parser.add_argument('-d', '--debug', default=logbook.INFO, dest='loglevel',
                         action='store_const', const=logbook.DEBUG)
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s ' + __version__)
 
     create_release = sub.add_parser('create-release')
     create_release.add_argument('-b', '--branch', default='master')
