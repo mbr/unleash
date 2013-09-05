@@ -139,6 +139,38 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
                                      str(new_version)))
     tree.add('setup.py', setuppy_mode, release_setup.id)
 
+    # get documentation's conf.py
+    try:
+        # FIXME: 'docs/' should not be hardcoded here, also duplicates
+        # stuff from build_docs
+        docconf_fn = 'docs/conf.py'
+
+        docconf_mode, docconf_id = tree.lookup_path(
+            repo.object_store.__getitem__, docconf_fn)
+    except KeyError:
+        log.warning('No documentation found (missing %r)' % docconf_fn)
+    else:
+        # got docs, update version numbers in those as well
+        docconf = repo[docconf_id]
+        release_docconf_data = docconf.data
+        new_shortver = new_version.copy()
+        new_shortver.drop_extras()
+
+        release_docconf_data = replace_assign(
+            release_docconf_data, 'version', str(new_shortver)
+        )
+        release_docconf_data = replace_assign(
+            release_docconf_data, 'release', str(new_version)
+        )
+
+        release_docconf = Blob.from_string(release_docconf_data)
+
+        objects_to_add.add(release_docconf)
+        objects_to_add.update(
+            add_path_to_tree(
+                repo, tree, docconf_fn, docconf_mode, release_docconf.id
+            ))
+
     objects_to_add.add(release_setup)
     objects_to_add.add(tree)
 
