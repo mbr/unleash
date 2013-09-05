@@ -13,6 +13,14 @@ from .git import prepare_commit, diff_tree
 log = logbook.Logger('unleash')
 
 
+def build_docs(srcdir, python):
+    if not os.path.exists(os.path.join(src, 'docs')):
+        log.warning("No documentation found (missing 'docs' dir)")
+    else:
+        log.info('Building documentation')
+        checked_output([python, 'setup.py', 'build_sphinx'])
+
+
 def action_create_release(args, repo):
     refname = 'refs/heads/%s' % args.branch
     if not refname in repo.refs:
@@ -102,6 +110,9 @@ def action_create_release(args, repo):
                 # install into virtualenv
                 log.info('Trying install into virtualenv...')
                 checked_output([pip, 'install', pkgfn])
+
+                # ensure docs can be built in release
+                build_docs(src, python)
 
             # package installs fine, all is well
             log.info('Running tests...')
