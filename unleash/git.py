@@ -130,14 +130,9 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
             replace_assign(pkg_init.data, '__version__', str(new_version))
         )
         objects_to_add.add(release_pkg_init)
-        objects_to_add.update(
-            add_path_to_tree(
-                repo, tree, pkg_init_fn, pkg_init_mode, release_pkg_init.id
-            ))
 
     release_setup = Blob.from_string(replace_assign(setuppy.data, 'version',
                                      str(new_version)))
-    tree.add('setup.py', setuppy_mode, release_setup.id)
 
     # get documentation's conf.py
     try:
@@ -147,10 +142,10 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
 
         docconf_mode, docconf_id = tree.lookup_path(
             repo.object_store.__getitem__, docconf_fn)
+        log.debug('Found %s' % docconf_fn)
     except KeyError:
         log.warning('No documentation found (missing %s)' % docconf_fn)
     else:
-        log.debug('Found %s' % docconf_fn)
         # got docs, update version numbers in those as well
         docconf = repo[docconf_id]
         release_docconf_data = docconf.data
@@ -167,11 +162,19 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
         release_docconf = Blob.from_string(release_docconf_data)
 
         objects_to_add.add(release_docconf)
+
+        # after this point, lookup_path cannot be used anymore
         objects_to_add.update(
             add_path_to_tree(
                 repo, tree, docconf_fn, docconf_mode, release_docconf.id
             ))
 
+    # tree modifications need to be delayed, if done above will affect searches
+    objects_to_add.update(
+        add_path_to_tree(
+            repo, tree, pkg_init_fn, pkg_init_mode, release_pkg_init.id
+        ))
+    tree.add('setup.py', setuppy_mode, release_setup.id)
     objects_to_add.add(release_setup)
     objects_to_add.add(tree)
 
