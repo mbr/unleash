@@ -79,10 +79,11 @@ def action_create_release(args, repo):
 
     # prepare the commits
     release_commit, release_tree, release_objs = prepare_commit(
-        repo, commit.id, release_version, args.author, msg_release
+        repo, commit.id, release_version, args.author, msg_release,
+        args.package_name,
     )
     dev_commit, dev_tree, dev_objs = prepare_commit(
-        repo, commit.id, dev_version, args.author, msg_dev
+        repo, commit.id, dev_version, args.author, msg_dev, args.package_name,
     )
 
     objects_to_add = []
@@ -252,6 +253,8 @@ def main():
                                 const='',
                                 help='Do not output footer on commit messages.'
                                 )
+    create_release.add_argument('-n', '--package-name', default=None,
+                                help='The name of the package to be packaged.')
 
     publish_release = sub.add_parser('publish')
     publish_release.add_argument('-s', '--sign')

@@ -101,7 +101,8 @@ def export_tree(repo, tree_id, output_dir):
             raise ValueError('Cannot deal with mode of %s' % entry)
 
 
-def prepare_commit(repo, parent_commit_id, new_version, author, message):
+def prepare_commit(repo, parent_commit_id, new_version, author, message,
+                   pkg_name=None):
     objects_to_add = set()
 
     log.debug('Preparing new commit for version %s based on %s' % (
@@ -114,7 +115,9 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
     setuppy = repo[setuppy_id]
 
     # get __init__.py's
-    pkg_name = find_assign(setuppy.data, 'name')
+    if pkg_name == None:
+        pkg_name = find_assign(setuppy.data, 'name')
+
     log.debug('Package name is %s' % pkg_name)
     pkg_init_fn = '%s/__init__.py' % pkg_name
 
@@ -122,7 +125,8 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message):
         (pkg_init_mode, pkg_init_id) =\
             tree.lookup_path(repo.object_store.__getitem__, pkg_init_fn)
     except KeyError:
-        log.debug('Did not find %s' % pkg_init_fn)
+        log.error('Did not find package "%s"' % pkg_init_fn)
+        raise
     else:
         log.debug('Found %s' % pkg_init_fn)
         pkg_init = repo[pkg_init_id]
