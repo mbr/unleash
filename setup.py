@@ -12,7 +12,7 @@ def read(fname):
 
 setup(
     name='unleash',
-    version='0.5.6.dev1',
+    version='0.5.8.dev1',
     description=('Creates release commits directly in git, unleashes them on '
                  'PyPI and pushes tags to github.'),
     long_description=read('README.rst'),
