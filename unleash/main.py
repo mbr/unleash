@@ -23,7 +23,7 @@ def build_docs(src, python, pip):
     else:
         with dirch(src):
             log.info('Building documentation')
-            checked_output([pip, 'install', 'sphinx', 'sphinx-readable-theme'
+            checked_output([pip, 'install', 'sphinx', 'sphinx-readable-theme',
                             'sphinx_rtd_theme', 'sphinx-better-theme'])
             checked_output([python, 'setup.py', 'build_sphinx',
                             '--source-dir', docs_dir,
