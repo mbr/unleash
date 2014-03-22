@@ -25,6 +25,10 @@ def build_docs(src, python, pip):
             log.info('Building documentation')
             checked_output([pip, 'install', 'sphinx', 'sphinx-readable-theme',
                             'sphinx_rtd_theme', 'sphinx-better-theme'])
+
+            # make sure autodoc works
+            checked_output([python, 'setup.py', 'develop'])
+
             checked_output([python, 'setup.py', 'build_sphinx',
                             '--source-dir', docs_dir,
                             '--build-dir', build_dir])
