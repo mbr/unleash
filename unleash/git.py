@@ -101,13 +101,42 @@ def export_tree(repo, tree_id, output_dir):
             raise ValueError('Cannot deal with mode of %s' % entry)
 
 
+def create_commit(author, tree_id, message=u'', parent_ids=[], committer=None,
+                  commit_time=None, author_time=None, commit_timezone=None,
+                  author_timezone=None, encoding='utf8'):
+    """Creates a new commit object with some automatic defaults."""
+    now = int(time.time())
+
+    new_commit = Commit()
+    new_commit.parents = parent_ids
+
+    new_commit.tree = tree_id
+    new_commit.author = author
+    new_commit.committer = author if committer is None else committer
+
+    new_commit.author_time = now if author_time is None else author_time
+    new_commit.commit_time = now if commit_time is None else commit_time
+
+    if commit_timezone is None or author_timezone is None:
+        tz_offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
+        local_zone = tz_offset.days * 24 * 60 * 60 + tz_offset.seconds
+
+    new_commit.commit_timezone = (local_zone if commit_timezone is None else
+                                  commit_timezone)
+    new_commit.author_timezone = (local_zone if author_timezone is None else
+                                  author_timezone)
+
+    new_commit.encoding = encoding
+    new_commit.message = message.encode('encoding')
+
+    return new_commit
+
+
 def prepare_commit(repo, parent_commit_id, new_version, author, message,
                    pkg_name=None):
     objects_to_add = set()
 
-    log.debug('Preparing new commit for version %s based on %s' % (
-        new_version, parent_commit_id,
-    ))
+    # look up tree from previous commit
     tree = repo[repo[parent_commit_id].tree]
 
     # get setup.py
@@ -182,26 +211,12 @@ def prepare_commit(repo, parent_commit_id, new_version, author, message,
     objects_to_add.add(release_setup)
     objects_to_add.add(tree)
 
-    now = int(time.time())
-    new_commit = Commit()
-    new_commit.parents = [parent_commit_id]
+    new_commit = create_commit(
+        parent_ids=[parent_commit_id],
+        tree_id=tree.id,
+        author=author,
+    )
 
-    new_commit.tree = tree.id
-
-    new_commit.author = author
-    new_commit.committer = author
-
-    new_commit.commit_time = now
-    new_commit.author_time = now
-
-    now = int(time.time())
-    offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
-    timezone = offset.days * 24 * 60 * 60 + offset.seconds
-    new_commit.commit_timezone = timezone
-    new_commit.author_timezone = timezone
-
-    new_commit.encoding = 'utf8'
-    new_commit.message = message
     objects_to_add.add(new_commit)
 
     # check objects
