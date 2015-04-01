@@ -1,82 +1,81 @@
-import logbook
-import os
-
+import click
 from dulwich.repo import Repo
-
+import logbook
+from logbook.more import ColorizedStderrHandler
+from logbook.handlers import NullHandler
 
 log = logbook.Logger('cli')
 
 
-def main():
-    import argparse
-    import sys
+pass_cfg = click.make_pass_decorator(dict, ensure=True)
 
-    from logbook.more import ColorizedStderrHandler
-    from logbook.handlers import NullHandler
 
-    from . import __version__
+@click.group()
+@click.option('--root', '-r', default='.',
+              type=click.Path(exists=True, file_okay=False, dir_okay=True,
+              resolve_path=True),
+              help='Package root directory.')
+@click.option('--batch', '-b', default=False, is_flag=True,
+              help='Do not ask for confirmation before committing changes to '
+              'anything.')
+@click.option('--debug', '-d', is_flag=True)
+@click.version_option()
+@pass_cfg
+def cli(cfg, root, batch, debug):
+    cfg['DEBUG'] = debug
+    cfg['ROOT'] = root
+    cfg['INTERACTIVE'] = not batch
+    cfg['REPO'] = Repo(root)
+    cfg['GITCONFIG'] = cfg['REPO'].get_config_stack()
 
-    default_footer = '\n\n(commit by unleash %s)' % __version__
-
-    parser = argparse.ArgumentParser()
-    sub = parser.add_subparsers(dest='action')
-    parser.add_argument('-r', '--root', default=os.getcwd(),
-                        type=os.path.abspath,
-                        help='Root directory for package.')
-    parser.add_argument('-a', '--author', default=None,
-                        help='Author string for commits (uses git configured '
-                             'settings per default')
-    parser.add_argument('-b', '--batch', default=True, dest='interactive',
-                        action='store_true',
-                        help='Do not ask for confirmation before committing '
-                             'changes to anything.')
-    parser.add_argument('-d', '--debug', default=logbook.INFO, dest='loglevel',
-                        action='store_const', const=logbook.DEBUG)
-    parser.add_argument('--version', action='version',
-                        version='%(prog)s ' + __version__)
-
-    create_release = sub.add_parser('create-release')
-    create_release.add_argument('-b', '--branch', default='master')
-    create_release.add_argument('-v', '--release-version', default=None)
-    create_release.add_argument('-d', '--dev-version', default=None)
-    create_release.add_argument('-T', '--no-test', dest='run_tests',
-                                action='store_false', default=True)
-    create_release.add_argument('-F', '--no-footer', default=default_footer,
-                                dest='commit_footer', action='store_const',
-                                const='',
-                                help='Do not output footer on commit messages.'
-                                )
-    create_release.add_argument('-n', '--package-name', default=None,
-                                help='The name of the package to be packaged.')
-
-    publish_release = sub.add_parser('publish')
-    publish_release.add_argument('-s', '--sign')
-    publish_release.add_argument('-v', '--version', default=None,
-                                 help=('Name of the tag to publish. Defaults '
-                                       'to the tag whose commit has the '
-                                       'highest readable version.'))
-
-    args = parser.parse_args()
+    # setup logging
+    loglevel = logbook.INFO
+    if debug:
+        loglevel = logbook.DEBUG
 
     NullHandler().push_application()
     ColorizedStderrHandler(format_string='{record.message}',
-                           level=args.loglevel).push_application()
+                           level=loglevel).push_application()
 
-    # first, determine current version
-    repo = Repo(args.root)
-    config = repo.get_config_stack()
 
-    if args.author is None:
-        args.author = '%s <%s>' % (
-            config.get('user', 'name'), config.get('user', 'email')
+@cli.command('create-release')
+@click.option('--author', '-a', default=None,
+              help='Author string for commits (uses git configured settings '
+                   'per default')
+@click.option('--branch', '-b', default='master',
+              help='Branch to cut the release from.')
+@click.option('--package-name', '-p',
+              help='The name of the package to be packaged.')
+@click.option('--dev-version', '-d',
+              help='Set new development version to this.')
+@click.option('--release-version', '-v',
+              help='Set released version to this.')
+@click.option('--skip-tests', '-T', 'run_tests', default=True,
+              flag_value=False, is_flag=True,
+              help='Do not run tests if tests are found.')
+@click.option('--no-footer', '-F', default=True, is_flag=False,
+              help='Do not output footer on commit messages.')
+@pass_cfg
+def create_release(cfg, author, branch, package_name, release_version,
+                   dev_version, run_tests, no_footer):
+    if no_footer:
+        footer = ''
+    else:
+        from . import __version__
+        footer = '\n\n(commit by unleash {})'.format(__version__)
+
+    # detect author
+    if author is None:
+        author = '{} <{}>'.format(
+            cfg['GIT_CONFIG'].get('user', 'name'),
+            cfg['GIT_CONFIG'].get('user', 'email'),
         )
 
-    func = globals()['action_' + args.action.replace('-', '_')]
 
-    try:
-        return func(args=args, repo=repo)
-    except Exception as e:
-        log.error(str(e))
-        if args.loglevel == logbook.DEBUG:
-            log.exception(e)
-        sys.exit(1)
+@cli.command()
+@click.option('--no-sign', '-S', 'sign', default=True, is_flag=True,
+              help='Turn off code signing.')
+@click.option('--tag', '-t',
+              help='Tag to publish. Default is the latest tag created.')
+def publish():
+    pass
