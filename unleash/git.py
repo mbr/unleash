@@ -103,7 +103,7 @@ def export_tree(repo, tree_id, output_dir):
 
 def create_commit(author, tree_id, message=u'', parent_ids=[], committer=None,
                   commit_time=None, author_time=None, commit_timezone=None,
-                  author_timezone=None, encoding='utf8'):
+                  author_timezone=None, encoding='UTF-8'):
     """Creates a new commit object with some automatic defaults."""
     now = int(time.time())
 
