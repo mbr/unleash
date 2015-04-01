@@ -25,7 +25,7 @@ setup(
                       'virtualenv>=1.10.1', 'python-dateutil', 'verlib'],
     entry_points={
         'console_scripts': [
-            'unleash = unleash.main:main',
+            'unleash = unleash.cli:main',
         ],
     }
 )
