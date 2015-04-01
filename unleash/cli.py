@@ -1,13 +1,14 @@
 import click
-from dulwich.repo import Repo
 import logbook
 from logbook.more import ColorizedStderrHandler
 from logbook.handlers import NullHandler
 
+from .unleash import Unleash
+
 log = logbook.Logger('cli')
 
 
-pass_cfg = click.make_pass_decorator(dict, ensure=True)
+pass_unleash = click.make_pass_decorator(Unleash, ensure=True)
 
 
 @click.group()
@@ -20,22 +21,18 @@ pass_cfg = click.make_pass_decorator(dict, ensure=True)
               'anything.')
 @click.option('--debug', '-d', is_flag=True)
 @click.version_option()
-@pass_cfg
-def cli(cfg, root, batch, debug):
-    cfg['DEBUG'] = debug
-    cfg['ROOT'] = root
-    cfg['INTERACTIVE'] = not batch
-    cfg['REPO'] = Repo(root)
-    cfg['GITCONFIG'] = cfg['REPO'].get_config_stack()
-
+@pass_unleash
+def cli(unleash, **kwargs):
     # setup logging
     loglevel = logbook.INFO
-    if debug:
+    if kwargs['debug']:
         loglevel = logbook.DEBUG
 
     NullHandler().push_application()
     ColorizedStderrHandler(format_string='{record.message}',
                            level=loglevel).push_application()
+
+    unleash.set_global_opts(**kwargs)
 
 
 @cli.command('create-release')
@@ -55,21 +52,9 @@ def cli(cfg, root, batch, debug):
               help='Do not run tests if tests are found.')
 @click.option('--no-footer', '-F', default=True, is_flag=False,
               help='Do not output footer on commit messages.')
-@pass_cfg
-def create_release(cfg, author, branch, package_name, release_version,
-                   dev_version, run_tests, no_footer):
-    if no_footer:
-        footer = ''
-    else:
-        from . import __version__
-        footer = '\n\n(commit by unleash {})'.format(__version__)
-
-    # detect author
-    if author is None:
-        author = '{} <{}>'.format(
-            cfg['GIT_CONFIG'].get('user', 'name'),
-            cfg['GIT_CONFIG'].get('user', 'email'),
-        )
+@pass_unleash
+def create_release(unleash, **kwargs):
+    unleash.create_release(**kwargs)
 
 
 @cli.command()
@@ -77,5 +62,6 @@ def create_release(cfg, author, branch, package_name, release_version,
               help='Turn off code signing.')
 @click.option('--tag', '-t',
               help='Tag to publish. Default is the latest tag created.')
-def publish():
-    pass
+@pass_unleash
+def publish(unleash, **kwargs):
+    unleash.publish(**kwargs)
