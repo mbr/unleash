@@ -129,14 +129,17 @@ def action_create_release(args, repo):
                 build_docs(src, python, pip)
 
             # package installs fine, all is well
-            if os.path.exists(os.path.join(src, 'tox.ini')):
-                log.info('Running tests (tox)...')
-                checked_output([pip, 'install', 'tox'])
-                tox = os.path.join(venv, 'bin', 'tox')
-                checked_output([tox])
+            if args.run_tests:
+                if os.path.exists(os.path.join(src, 'tox.ini')):
+                    log.info('Running tests (tox)...')
+                    checked_output([pip, 'install', 'tox'])
+                    tox = os.path.join(venv, 'bin', 'tox')
+                    checked_output([tox])
+                else:
+                    log.info('Running tests (setuptools)...')
+                    checked_output([python, 'setup.py', 'test'])
             else:
-                log.info('Running tests (setuptools)...')
-                checked_output([python, 'setup.py', 'test'])
+                log.warning('Skipping tests')
 
     tag_refname = 'refs/tags/%s' % release_version
     confirm('Release commits created OK, tag %s and update %s?' % (
