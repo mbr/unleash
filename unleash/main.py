@@ -179,7 +179,7 @@ def action_publish(args, repo):
     prefix = 'refs/tags/'
     if args.version is None:
         versions = []
-        for tag in repo.refs.allkeys():
+        for tag in repo.refs.keys():
             tagname = tag[len(prefix):]
             if not tag.startswith(prefix):
                 continue
