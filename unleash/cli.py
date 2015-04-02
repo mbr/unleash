@@ -51,7 +51,7 @@ def cli(unleash, **kwargs):
 @click.option('--skip-tests', '-T', 'run_tests', default=True,
               flag_value=False, is_flag=True,
               help='Do not run tests if tests are found.')
-@click.option('--no-footer', '-F', default=True, is_flag=False,
+@click.option('--no-footer', '-F', default=False, is_flag=True,
               help='Do not output footer on commit messages.')
 @pass_unleash
 def create_release(unleash, **kwargs):
