@@ -3,6 +3,7 @@ import logbook
 from logbook.more import ColorizedStderrHandler
 from logbook.handlers import NullHandler
 
+from .exc import ReleaseError
 from .unleash import Unleash
 
 log = logbook.Logger('cli')
@@ -65,3 +66,10 @@ def create_release(unleash, **kwargs):
 @pass_unleash
 def publish(unleash, **kwargs):
     unleash.publish(**kwargs)
+
+
+def main():
+    try:
+        cli()
+    except ReleaseError as e:
+        log.critical(e)

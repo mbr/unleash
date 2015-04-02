@@ -26,7 +26,7 @@ setup(
                       'stuf'],
     entry_points={
         'console_scripts': [
-            'unleash = unleash.cli:cli',
+            'unleash = unleash.cli:main',
         ],
     }
 )
