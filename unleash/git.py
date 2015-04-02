@@ -1,11 +1,12 @@
 from datetime import datetime
 import os
-from stat import S_ISLNK, S_ISDIR, S_ISREG
+from stat import S_ISLNK, S_ISDIR, S_ISREG, S_IFDIR
 import time
 
 from dateutil.tz import tzlocal
-from dulwich.objects import S_ISGITLINK, Blob, Commit
+from dulwich.objects import S_ISGITLINK, Blob, Commit, Tree
 import logbook
+from stuf.collects import ChainMap
 
 from .version import find_assign, replace_assign
 
@@ -101,35 +102,183 @@ def export_tree(repo, tree_id, output_dir):
             raise ValueError('Cannot deal with mode of %s' % entry)
 
 
-def create_commit(author, tree_id, message=u'', parent_ids=[], committer=None,
-                  commit_time=None, author_time=None, commit_timezone=None,
-                  author_timezone=None, encoding='UTF-8'):
-    """Creates a new commit object with some automatic defaults."""
-    now = int(time.time())
+class MalleableCommit(object):
+    def __init__(self, repo, author=u'', message=u'', parent_ids=[], tree=None,
+                 committer=None, commit_time=None, author_time=None,
+                 commit_timezone=None, author_timezone=None,
+                 encoding='UTF-8'):
+        now = int(time.time())
 
-    new_commit = Commit()
-    new_commit.parents = parent_ids
+        # calculate local timezone. must be done each time, due to DST
+        _tz_offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
+        LOCAL_TIMEZONE = _tz_offset.days * 24 * 60 * 60 + _tz_offset.seconds
 
-    new_commit.tree = tree_id
-    new_commit.author = author
-    new_commit.committer = author if committer is None else committer
+        self.repo = repo
+        self.encoding = encoding
+        self.parent_ids = parent_ids
+        self.message = message
 
-    new_commit.author_time = now if author_time is None else author_time
-    new_commit.commit_time = now if commit_time is None else commit_time
+        self.author = author
+        self.committer = author if committer is None else committer
 
-    if commit_timezone is None or author_timezone is None:
-        tz_offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
-        local_zone = tz_offset.days * 24 * 60 * 60 + tz_offset.seconds
+        # times default to now
+        self.author_time = author_time if author_time is not None else now
+        self.commit_time = commit_time if commit_time is not None else now
 
-    new_commit.commit_timezone = (local_zone if commit_timezone is None else
-                                  commit_timezone)
-    new_commit.author_timezone = (local_zone if author_timezone is None else
-                                  author_timezone)
+        # the default timezone is the local timezone
+        self.commit_timezone = (commit_timezone if commit_timezone is not None
+                                else LOCAL_TIMEZONE)
+        self.author_timezone = (author_timezone if author_timezone is not None
+                                else LOCAL_TIMEZONE)
 
-    new_commit.encoding = encoding
-    new_commit.message = message.encode('encoding')
+        # FIXME: empty tree on new commit?
+        self.tree = tree
 
-    return new_commit
+        self.new_objects = {}
+
+        # chain used for looking up items, may include uncommitted ones
+        self._lookup_chain = ChainMap(self.new_objects, self.repo.object_store)
+
+    # FIXME: add methods for checkout into folder
+
+    @classmethod
+    def from_parent(cls, repo, parent_id):
+        parent = repo[parent_id]
+
+        nc = cls(repo, parent_ids=[parent_id])
+        nc.tree = repo[parent.id]
+
+        return nc
+
+    @classmethod
+    def from_existing(cls, repo, commit_id):
+        commit = repo[commit_id]
+        encoding = commit.encoding or 'UTF-8'
+        return cls(
+            repo,
+            author=commit.author,
+            message=commit.message.decode(encoding),
+            parent_ids=commit.parents,
+            committer=commit.committer,
+            commit_time=commit.commit_time,
+            author_time=commit.author_time,
+            commit_timezone=commit.commit_timezone,
+            author_timezone=commit.author_timezone,
+            encoding=encoding,
+            tree=repo[commit.tree],
+        )
+
+    def _to_commit(self):
+        new_commit = Commit()
+        new_commit.parents = self.parent_ids
+
+        new_commit.tree = self.tree
+        new_commit.author = self.author
+        new_commit.committer = self.committer
+
+        new_commit.author_time = self.author_time
+        new_commit.commit_time = self.commit_time
+
+        new_commit.commit_timezone = self.commit_timezone
+        new_commit.author_timezone = self.author_timezone
+
+        new_commit.encoding = self.encoding
+        new_commit.message = self.message.encode(self.encoding)
+
+        return new_commit
+
+    def set_path_data(self, path, data, mode=0100644):
+        blob = Blob.from_string(data)
+        self.new_objects[blob.id] = blob
+
+        return self.set_path_id(path, blob.id, mode)
+
+    def set_path_id(self, path, id, mode=0100644):
+        # we use regular "/" split here, as dulwich uses the same method
+        parts = path.split('/')
+
+        self.tree = self._path_add(self.tree, parts, id, mode)
+        self.new_objects[self.tree.id] = self.tree
+
+    def _path_add(self, tree, parts, id, mode):
+        if len(parts) == 1:
+            fn = parts[0]
+
+            # add id and remember altered tree
+            tree.add(fn, mode, id)
+            return tree
+
+        # there are more parts left
+        subtree_name = parts[0]
+
+        try:
+            subtree_mode, subtree_id = tree[subtree_name]
+            if not S_ISDIR(subtree_mode):
+                subtree = None  # if it's a regular file, we overwrite it
+            else:
+                subtree = self._lookup_chain[subtree_id]
+        except KeyError:
+            subtree = None
+            subtree_mode = S_IFDIR
+
+        if subtree is None:
+            subtree = Tree()
+
+        # alter subtree and add to our tree
+        old_subtree_id = subtree.id
+        subtree = self._path_add(subtree, parts[1:], id, mode)
+
+        # only store if the subtree actually changed
+        if subtree.id != old_subtree_id:
+            self.new_objects[subtree.id] = subtree
+            tree.add(subtree_name, subtree_mode, subtree.id)
+
+        return tree
+
+    def get_path_id(self, path):
+        return self._lookup(path)[1]
+
+    def get_path_data(self, path):
+        obj = self._lookup_chain[self.get_path_id(path)]
+
+        if hasattr(obj, 'data'):
+            return obj.data
+
+    def get_path_mode(self, path):
+        return self._lookup(path)[0]
+
+    def save(self):
+        # generate the commit
+        commit = self._to_commit()
+        self.new_objects[commit.id] = commit
+
+        # instead of adding all new objects, we just add reachable ones
+        ids_to_add = set()
+        ids_to_add.add(commit.id)
+
+        q = [commit.tree.id]
+        while q:
+            cur = q.pop()
+            if not cur in self.new_objects:
+                # already in repo
+                continue
+
+            ids_to_add.add(cur)
+
+            # if it is a tree, also add children
+            cur_obj = self.new_objects[cur]
+            if isinstance(cur_obj, Tree):
+                # add children
+                for name, mode, sha in cur_obj.iteritems():
+                    q.append(sha)
+
+        # add all collected objects
+        for id in ids_to_add:
+            self.repo.object_store.add_object(self.new_objects[id])
+
+    def _lookup(self, path):
+        # construct a lookup chain that
+        return self.tree.lookup_path(self._lookup_chain.__getitem__, path)
 
 
 def prepare_commit(repo, parent_commit_id, new_version, author, message,
