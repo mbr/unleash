@@ -65,3 +65,74 @@ def test_commit_reading(repo):
 
     assert c.get_path_data('sub/dir/dest.txt') == 'baz'
     assert c.get_path_mode('sub/dir/dest.txt') == 0100644
+
+    with pytest.raises(KeyError):
+        assert c.get_path_data('does.not.exist')
+
+    # directories return None and have just the dir flag set
+    assert c.get_path_data('sub') is None
+    assert c.get_path_mode('sub') == 0040000
+
+
+def test_commit_id_setting(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+    baz = c.get_path_id('sub/dir/dest.txt')
+
+    old_tree_id = c.tree.id
+
+    c.set_path_id('foo.txt', baz)
+    assert c.get_path_data('foo.txt') == 'baz'
+    assert c.tree.id != old_tree_id
+
+
+def test_commit_content_writing(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+    c.set_path_data('foo.txt', 'NEW')
+    assert c.get_path_data('foo.txt') == 'NEW'
+
+    c.set_path_data('new_stuff.txt', 'two')
+    assert c.get_path_data('new_stuff.txt') == 'two'
+
+    c.set_path_data('with/path/new', 'three')
+    assert c.get_path_data('with/path/new') == 'three'
+    assert c.get_path_data('with/path') is None
+    assert c.get_path_data('with') is None
+
+
+def test_commit_overwrites_files_with_dirs(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+    assert c.get_path_data('foo.txt') == 'bar'
+
+    c.set_path_data('foo.txt/bla', 'NEW')
+    assert c.get_path_data('foo.txt/bla') == 'NEW'
+    assert c.get_path_data('foo.txt') is None
+
+
+def test_commit_changes_mode(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+    c.set_path_data('xyz.txt', 'NEW', mode=0100755)
+    assert c.get_path_data('xyz.txt') == 'NEW'
+    assert c.get_path_mode('xyz.txt') == 0100755
+
+
+def test_commit_persists_changes(dummy_repo, repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+    c.set_path_data('xyz.txt', 'NEW', mode=0100755)
+    tree_id = c.tree.id
+    c.save()
+
+    r = Repo(dummy_repo)
+    t = r[tree_id]
+
+    b_id = t['xyz.txt'][1]
+    assert r[b_id].data == 'NEW'
