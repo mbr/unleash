@@ -1,2 +1,6 @@
-class ReleaseError(Exception):
+class UnleashError(Exception):
+    pass
+
+
+class ReleaseError(UnleashError):
     pass

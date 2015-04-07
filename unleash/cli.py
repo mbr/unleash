@@ -3,7 +3,7 @@ import logbook
 from logbook.more import ColorizedStderrHandler
 from logbook.handlers import NullHandler
 
-from .exc import ReleaseError
+from .exc import UnleashError
 from .unleash import Unleash
 
 log = logbook.Logger('cli')
@@ -71,5 +71,5 @@ def publish(unleash, **kwargs):
 def main():
     try:
         cli()
-    except ReleaseError as e:
+    except UnleashError as e:
         log.critical(e)
