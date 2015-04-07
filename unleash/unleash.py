@@ -1,9 +1,12 @@
+import os
+
 import click
 from dulwich.repo import Repo
 from dulwich.objects import Commit
 from logbook import Logger
 from tempdir import TempDir
 
+from . import plugin_base
 from .exc import ReleaseError, InvocationError
 from .git import prepare_commit, resolve, export_tree
 from .version import NormalizedVersion, find_version
@@ -27,6 +30,18 @@ class Unleash(object):
         self.debug = debug
         self.repo = Repo(root)
         self.config = self.repo.get_config_stack()
+
+        # discover and load plugins
+        from . import plugins
+        self.plugin_source = plugin_base.make_plugin_source(
+            searchpath=[os.path.dirname(plugins.__file__)]
+        )
+
+        with self.plugin_source:
+            for plugin_name in self.plugin_source.list_plugins():
+                log.debug('Loading plugin: {}'.format(plugin_name))
+                plugin = self.plugin_source.load_plugin(plugin_name)
+                plugin.setup(self)
 
     def lint(self, ref):
         objs = resolve(self.repo, self.repo.__getitem__, ref.encode('ascii'))
