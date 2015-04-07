@@ -21,7 +21,13 @@ class LintOperation(object):
         self.app = app
         self.commit = commit
 
+    def warn(self, channel, message):
+        log.warning('[lint:{}] {}'.format(channel, message))
+        self.warnings.append((channel, message))
+
     def run(self):
+        self.warnings = []
+
         # at this point, we know it's a commit. check out into temporary folder
         with TempDir() as self.tmpdir:
             export_tree(self.app.repo.object_store.__getitem__,
