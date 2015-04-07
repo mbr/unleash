@@ -44,6 +44,47 @@ def export_tree(lookup, tree, path):
                              (mode, name))
 
 
+def resolve(repo, lookup, ish, allow_ambiguous=False):
+    """Resolves a commit-ish/tree-ish to an object.
+
+    Correct way is described at `here <http://stackoverflow.com/questions/
+    23303549/what-are-commit-ish-and-tree-ish-in-git>`_.
+
+    Resolution in this function is much simpler, no ``@{}~:/^ `` are supported.
+    """
+    candidates = []
+
+    def consider(name):
+        if name in repo:
+            candidates.append(repo[name])
+
+    consider(ish)
+    consider('refs/tags/{}'.format(ish))
+    consider('refs/heads/{}'.format(ish))
+    consider('refs/{}'.format(ish))
+
+    if len(candidates) == 0:
+        raise KeyError(ish)
+
+    if len(candidates) > 1 and not allow_ambiguous:
+        raise ValueError('{} is ambiguous.'.format(ish))
+
+    return candidates[0]
+
+
+def resolve_treeish(repo, lookup, treeish, allow_ambiguous=False):
+    while True:
+        rv = resolve(repo, lookup, treeish, allow_ambiguous)
+
+        if isinstance(rv, Commit):
+            return lookup(rv.tree)
+
+        if isinstance(rv, Tree):
+            return rv
+
+        raise ValueError('Not a tree-ish: {}'.format(rv))
+
+
 class MalleableCommit(object):
     def __init__(self, repo, author=u'', message=u'', parent_ids=[], tree=None,
                  committer=None, commit_time=None, author_time=None,

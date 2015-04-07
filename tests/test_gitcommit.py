@@ -4,7 +4,7 @@ import subprocess
 from dulwich.repo import Repo
 import pytest
 from tempdir import TempDir
-from unleash.git import MalleableCommit, export_tree
+from unleash.git import MalleableCommit, export_tree, resolve
 
 from pytest_fixbinary import binary
 
@@ -167,3 +167,10 @@ def test_export_to_uncommitted(repo):
         assert os.path.exists(os.path.join(outdir, 'sub', 'dir', 'dest.txt'))
         assert 'overwritten' == open(os.path.join(outdir, 'foo.txt')).read()
         assert 'NEW' == open(os.path.join(outdir, 'xyz.txt')).read()
+
+
+def test_my_resolve(repo):
+    master = repo.refs['refs/heads/master']
+    c = repo[master]
+
+    assert c == resolve(repo, repo.__getitem__, 'master')
