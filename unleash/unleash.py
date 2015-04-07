@@ -7,11 +7,10 @@ from dulwich.objects import Commit
 from logbook import Logger
 from tempdir import TempDir
 
-from . import plugin_base
+from . import plugin_base, plugins
 from .exc import ReleaseError, InvocationError
 from .git import prepare_commit, resolve, export_tree
 from .version import NormalizedVersion, find_version
-
 
 log = Logger('unleash')
 
@@ -72,11 +71,11 @@ class Unleash(object):
         self.root = root
         self.interactive = not batch
         self.debug = debug
+
         self.repo = Repo(root)
         self.config = self.repo.get_config_stack()
 
         # discover and load plugins
-        from . import plugins
         self.plugin_source = plugin_base.make_plugin_source(
             searchpath=[os.path.dirname(plugins.__file__)]
         )
