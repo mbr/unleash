@@ -61,8 +61,8 @@ def create_release(unleash, **kwargs):
 @cli.command('lint')
 @click.argument('ref')
 @pass_unleash
-def lint(unleash, ref):
-    unleash.lint(ref)
+def lint(unleash, **kwargs):
+    unleash.lint(**kwargs)
 
 
 @cli.command()

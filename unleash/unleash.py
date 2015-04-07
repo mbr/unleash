@@ -10,24 +10,20 @@ from tempdir import TempDir
 from . import plugin_base, plugins
 from .exc import ReleaseError, InvocationError
 from .git import prepare_commit, resolve, export_tree
+from .issues import IssueCollector
 from .version import NormalizedVersion, find_version
 
 log = Logger('unleash')
 
 
-class LintOperation(object):
+class LintOperation(IssueCollector):
     def __init__(self, app, commit):
+        super(LintOperation, self).__init__()
         self.app = app
         self.commit = commit
 
-    def warn(self, channel, message, suggest=None):
-        log.warning('[lint:{}] {}'.format(channel, message))
-        if suggest:
-            log.info('[suggestion:{}] {}'.format(channel, suggest))
-        self.warnings.append((channel, message, None))
-
     def run(self):
-        self.warnings = []
+        self.issues = []
 
         # at this point, we know it's a commit. check out into temporary folder
         with TempDir() as self.tmpdir:
