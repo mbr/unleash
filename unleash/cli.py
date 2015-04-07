@@ -58,6 +58,13 @@ def create_release(unleash, **kwargs):
     unleash.create_release(**kwargs)
 
 
+@cli.command('lint')
+@click.argument('ref')
+@pass_unleash
+def lint(unleash, ref):
+    unleash.lint(ref)
+
+
 @cli.command()
 @click.option('--no-sign', '-S', 'sign', default=True, is_flag=True,
               help='Turn off code signing.')
