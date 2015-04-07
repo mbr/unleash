@@ -4,7 +4,7 @@ import subprocess
 from dulwich.repo import Repo
 import pytest
 from tempdir import TempDir
-from unleash.git import MalleableCommit
+from unleash.git import MalleableCommit, export_tree
 
 from pytest_fixbinary import binary
 
@@ -136,3 +136,34 @@ def test_commit_persists_changes(dummy_repo, repo):
 
     b_id = t['xyz.txt'][1]
     assert r[b_id].data == 'NEW'
+
+
+def test_export_to_existing(repo):
+    master = repo.refs['refs/heads/master']
+    c = repo[master]
+
+    with TempDir() as outdir:
+        export_tree(repo.object_store.__getitem__, repo[c.tree], outdir)
+
+        # check if all files are present
+        assert os.path.exists(os.path.join(outdir, 'foo.txt'))
+        assert os.path.exists(os.path.join(outdir, 'sub', 'dir', 'dest.txt'))
+        assert 'bar' == open(os.path.join(outdir, 'foo.txt')).read()
+
+
+def test_export_to_uncommitted(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+
+    c.set_path_data('xyz.txt', 'NEW', mode=0100755)
+    c.set_path_data('foo.txt', 'overwritten')
+
+    with TempDir() as outdir:
+        c.export_to(outdir)
+
+        # check if all files are present
+        assert os.path.exists(os.path.join(outdir, 'foo.txt'))
+        assert os.path.exists(os.path.join(outdir, 'sub', 'dir', 'dest.txt'))
+        assert 'overwritten' == open(os.path.join(outdir, 'foo.txt')).read()
+        assert 'NEW' == open(os.path.join(outdir, 'xyz.txt')).read()

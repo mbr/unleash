@@ -1,6 +1,6 @@
 from datetime import datetime
 import os
-from stat import S_ISLNK, S_ISDIR, S_ISREG, S_IFDIR
+from stat import S_ISLNK, S_ISDIR, S_ISREG, S_IFDIR, S_IRWXU, S_IRWXG, S_IRWXO
 import time
 
 from dateutil.tz import tzlocal
@@ -13,36 +13,35 @@ from .version import find_assign, replace_assign
 log = logbook.Logger('git')
 
 
-def export_to_dir(repo, commit_id, output_dir):
-    tree_id = repo[commit_id].tree
-    export_tree(repo, tree_id, output_dir)
+def export_tree(lookup, tree, path):
+    """Exports the given tree object to path.
 
+    :param lookup: Function to retrieve objects for SHA1 hashes.
+    :param tree: Tree to export.
+    :param path: Output path.
+    """
+    FILE_PERM = S_IRWXU | S_IRWXG | S_IRWXO
 
-def export_tree(repo, tree_id, output_dir):
-    # we assume output_dir exists and is empty
-    if os.listdir(output_dir):
-        raise ValueError('Directory %s not empty' % output_dir)
+    for name, mode, hexsha in tree.iteritems():
+        dest = os.path.join(path, name)
+        obj = lookup(hexsha)
 
-    for entry in repo[tree_id].iteritems():
-        output_path = os.path.join(output_dir, entry.path)
-
-        if S_ISGITLINK(entry.mode):
+        if S_ISGITLINK(mode):
             raise ValueError('Does not support submodules')
-        elif S_ISDIR(entry.mode):
-            os.mkdir(output_path)  # mode parameter here is umasked, use chmod
-            os.chmod(output_path, 0755)
-            log.debug('created %s' % output_path)
-            export_tree(repo, entry.sha, os.path.join(output_dir, output_path))
-        elif S_ISLNK(entry.mode):
-            log.debug('link %s' % output_path)
-            os.symlink(repo[entry.sha].data, output_path)
-        elif S_ISREG(entry.mode):
-            with open(output_path, 'wb') as out:
-                for chunk in repo[entry.sha].chunked:
+        elif S_ISDIR(mode):
+            os.mkdir(dest)
+            os.chmod(dest, 0755)
+            export_tree(lookup, obj, dest)
+        elif S_ISLNK(mode):
+            os.symlink(obj.data, dest)
+        elif S_ISREG(mode):
+            with open(dest, 'wb') as out:
+                for chunk in obj.chunked:
                     out.write(chunk)
-            log.debug('wrote %s' % output_path)
+            os.chmod(dest, mode & FILE_PERM)
         else:
-            raise ValueError('Cannot deal with mode of %s' % entry)
+            raise ValueError('Cannot deal with mode of {:o} from {}'.format
+                             (mode, name))
 
 
 class MalleableCommit(object):
@@ -81,8 +80,6 @@ class MalleableCommit(object):
 
         # chain used for looking up items, may include uncommitted ones
         self._lookup_chain = ChainMap(self.new_objects, self.repo.object_store)
-
-    # FIXME: add methods for checkout into folder
 
     @classmethod
     def from_parent(cls, repo, parent_id):
@@ -177,6 +174,9 @@ class MalleableCommit(object):
             tree.add(subtree_name, subtree_mode, subtree.id)
 
         return tree
+
+    def export_to(self, path):
+        export_tree(self._lookup_chain.__getitem__, self.tree, path)
 
     def get_path_id(self, path):
         return self._lookup(path)[1]
