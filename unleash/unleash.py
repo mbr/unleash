@@ -21,9 +21,11 @@ class LintOperation(object):
         self.app = app
         self.commit = commit
 
-    def warn(self, channel, message):
+    def warn(self, channel, message, suggest=None):
         log.warning('[lint:{}] {}'.format(channel, message))
-        self.warnings.append((channel, message))
+        if suggest:
+            log.info('[suggestion:{}] {}'.format(channel, suggest))
+        self.warnings.append((channel, message, None))
 
     def run(self):
         self.warnings = []
