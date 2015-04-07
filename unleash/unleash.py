@@ -1,5 +1,6 @@
 import os
 
+from blinker import signal
 import click
 from dulwich.repo import Repo
 from dulwich.objects import Commit
@@ -15,14 +16,49 @@ from .version import NormalizedVersion, find_version
 log = Logger('unleash')
 
 
+class LintOperation(object):
+    def __init__(self, app, commit):
+        self.app = app
+        self.commit = commit
+
+    def run(self):
+        # at this point, we know it's a commit. check out into temporary folder
+        with TempDir() as self.tmpdir:
+            export_tree(self.app.repo.object_store.__getitem__,
+                        self.app.repo[self.commit.tree],
+                        self.tmpdir)
+
+            # now we run all linting plugins
+            self.app.do_lint.send(self.app, lint=self)
+
+
 class Unleash(object):
     default_footer = u'\n\n[commit by unleash {}]'
     release_msg = u'Release version {}.{}'
     dev_msg = u'Increased version to {} after release of {}.{}'
 
+    # signals
+    do_lint = signal('do_lint')
+
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
         if self.interactive:
             click.confirm(text, default=default, abort=abort, **kwargs)
+
+    def _resolve_commit(self, ref):
+        objs = resolve(self.repo, self.repo.__getitem__, ref.encode('ascii'))
+        log.debug('Resolved {!r} to {!r}'.format(ref, objs))
+
+        commits = filter(lambda c: isinstance(c, Commit), objs)
+
+        if not commits:
+            raise InvocationError('Could not resolve "{}"'.format(ref))
+
+        if len(commits) > 1:
+            raise InvocationError('Ambiguous commit-ish "{}": {}'.format(
+                ref, objs,
+            ))
+
+        return commits[0]
 
     def set_global_opts(self, root, batch, debug):
         self.root = root
@@ -44,30 +80,10 @@ class Unleash(object):
                 plugin.setup(self)
 
     def lint(self, ref):
-        objs = resolve(self.repo, self.repo.__getitem__, ref.encode('ascii'))
-        log.debug('Resolved {!r} to {!r}'.format(ref, objs))
+        commit = self._resolve_commit(ref)
 
-        if not objs:
-            raise InvocationError('Could not resolve "{}"'.format(ref))
-
-        if len(objs) > 1:
-            raise InvocationError('Ambiguous treeish "{}": {}'.format(
-                ref, objs,
-            ))
-
-        obj = objs[0]
-
-        if not isinstance(obj, Commit):
-            raise InvocationError('Not a commit: {}'.format(ref))
-
-        # at this point, we know it's a commit. check out into temporary folder
-        with TempDir() as tmpdir:
-            export_tree(self.repo.object_store.__getitem__,
-                        self.repo[obj.tree],
-                        tmpdir)
-
-            # now we run all linting plugins
-            # FIXME
+        op = LintOperation(self, commit)
+        op.run()
 
     def create_release(self, author, branch, package_name, release_version,
                        dev_version, run_tests, no_footer):
