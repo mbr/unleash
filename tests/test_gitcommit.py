@@ -173,4 +173,5 @@ def test_my_resolve(repo):
     master = repo.refs['refs/heads/master']
     c = repo[master]
 
-    assert c == resolve(repo, repo.__getitem__, 'master')
+    assert [c] == resolve(repo, repo.__getitem__, 'master')
+    assert [] == resolve(repo, repo.__getitem__, 'meh')

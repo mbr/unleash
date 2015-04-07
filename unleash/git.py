@@ -44,7 +44,7 @@ def export_tree(lookup, tree, path):
                              (mode, name))
 
 
-def resolve(repo, lookup, ish, allow_ambiguous=False):
+def resolve(repo, lookup, ish):
     """Resolves a commit-ish/tree-ish to an object.
 
     Correct way is described at `here <http://stackoverflow.com/questions/
@@ -63,13 +63,7 @@ def resolve(repo, lookup, ish, allow_ambiguous=False):
     consider('refs/heads/{}'.format(ish))
     consider('refs/{}'.format(ish))
 
-    if len(candidates) == 0:
-        raise KeyError(ish)
-
-    if len(candidates) > 1 and not allow_ambiguous:
-        raise ValueError('{} is ambiguous.'.format(ish))
-
-    return candidates[0]
+    return candidates
 
 
 def resolve_treeish(repo, lookup, treeish, allow_ambiguous=False):
