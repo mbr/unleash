@@ -66,19 +66,6 @@ def resolve(repo, lookup, ish):
     return candidates
 
 
-def resolve_treeish(repo, lookup, treeish, allow_ambiguous=False):
-    while True:
-        rv = resolve(repo, lookup, treeish, allow_ambiguous)
-
-        if isinstance(rv, Commit):
-            return lookup(rv.tree)
-
-        if isinstance(rv, Tree):
-            return rv
-
-        raise ValueError('Not a tree-ish: {}'.format(rv))
-
-
 class MalleableCommit(object):
     def __init__(self, repo, author=u'', message=u'', parent_ids=[], tree=None,
                  committer=None, commit_time=None, author_time=None,
