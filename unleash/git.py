@@ -95,7 +95,6 @@ class MalleableCommit(object):
         self.author_timezone = (author_timezone if author_timezone is not None
                                 else LOCAL_TIMEZONE)
 
-        # FIXME: empty tree on new commit?
         self.tree = tree
 
         self.new_objects = {}
