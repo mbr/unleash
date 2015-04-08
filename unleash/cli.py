@@ -41,7 +41,7 @@ def cli(unleash, root, debug, batch, **kwargs):
     unleash.set_global_opts(root, debug, opts)
 
 
-@cli.command('create-release')
+@cli.command()
 @click.option('--author', '-a', default=None,
               help='Author string for commits (uses git configured settings '
                    'per default')
@@ -63,12 +63,12 @@ def cli(unleash, root, debug, batch, **kwargs):
               help='Set the committer to unleash (default: enabled).')
 @click.argument('ref')
 @click.pass_obj
-def create_release(unleash, ref, **kwargs):
+def release(unleash, ref, **kwargs):
     unleash.opts.update(kwargs)
     unleash.create_release(ref)
 
 
-@cli.command('lint')
+@cli.command()
 @click.argument('ref')
 @click.pass_obj
 def lint(unleash, ref, **kwargs):
