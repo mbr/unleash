@@ -17,15 +17,6 @@ from .version import NormalizedVersion, find_version
 log = Logger('unleash')
 
 
-def mcall(obj, meth, *args, **kwargs):
-    func = getattr(obj, meth, None)
-
-    if func is None or not callable(func):
-        return None
-
-    return func(*args, **kwargs)
-
-
 class CommitBasedOperation(IssueCollector):
     def __init__(self, app, commit):
         super(CommitBasedOperation, self).__init__()
@@ -56,7 +47,7 @@ class CreateReleaseOperation(CommitBasedOperation):
             commit.author = opts['author']
             commit.committer = opts['author']
 
-        # FIXME: run release operations
+        self.app.notify_plugins('prepare_release', ctx=self)
 
         log.info(unicode(self.commit))
 
@@ -120,8 +111,14 @@ class Unleash(object):
         rvs = []
 
         for plugin in self.plugins:
+            func = getattr(plugin, funcname, None)
+
+            if func is None or not callable(func):
+                continue
+
             log.debug('plugin-{}: {}'.format(funcname, plugin.PLUGIN_NAME))
-            rvs.append(mcall(plugin, funcname, *args, **kwargs))
+
+            rvs.append(func(*args, **kwargs))
 
         return rvs
 
