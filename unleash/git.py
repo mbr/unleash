@@ -129,11 +129,11 @@ class MalleableCommit(object):
             tree=repo[commit.tree],
         )
 
-    def _to_commit(self):
+    def to_commit(self):
         new_commit = Commit()
         new_commit.parents = self.parent_ids
 
-        new_commit.tree = self.tree
+        new_commit.tree = self.tree.id
         new_commit.author = self.author
         new_commit.committer = self.committer
 
@@ -220,14 +220,14 @@ class MalleableCommit(object):
 
     def save(self):
         # generate the commit
-        commit = self._to_commit()
+        commit = self.to_commit()
         self.new_objects[commit.id] = commit
 
         # instead of adding all new objects, we just add reachable ones
         ids_to_add = set()
         ids_to_add.add(commit.id)
 
-        q = [commit.tree.id]
+        q = [commit.tree]
         while q:
             cur = q.pop()
             if not cur in self.new_objects:
