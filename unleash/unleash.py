@@ -9,7 +9,7 @@ from tempdir import TempDir
 
 from . import plugin_base, plugins
 from .exc import ReleaseError, InvocationError
-from .git import prepare_commit, resolve, export_tree
+from .git import prepare_commit, resolve, export_tree, MalleableCommit
 from .issues import IssueCollector
 from .version import NormalizedVersion, find_version
 
@@ -25,30 +25,27 @@ def mcall(obj, meth, *args, **kwargs):
     return func(*args, **kwargs)
 
 
-class LintOperation(IssueCollector):
+class CommitBasedOperation(IssueCollector):
     def __init__(self, app, commit):
-        super(LintOperation, self).__init__()
+        super(CommitBasedOperation, self).__init__()
         self.app = app
         self.commit = commit
 
-    def run(self, tmpdir):
-        self.issues = []
-        self.tmpdir = tmpdir
 
+class LintOperation(CommitBasedOperation):
+    def run(self):
         # now we run all linting plugins
-        self.app.notify_plugins('lint', self.app, lint=self)
+        self.app.notify_plugins('lint', ctx=self)
         log.info('Finished lint. Issues: {}'.format(len(self.issues)))
 
 
-class CreateReleaseOperation(object):
-    def __init__(self, app, commit):
-        self.app = app
-        self.commit = commit
-
-    def run(self, tmpdir):
+class CreateReleaseOperation(CommitBasedOperation):
+    def run(self):
         # first, we lint the tree
         lint = LintOperation(self.app, self.commit)
-        lint.run(tmpdir)
+        lint.run()
+
+        # FIXME: create release
 
 
 class Unleash(object):
@@ -124,20 +121,16 @@ class Unleash(object):
         self.notify_plugins('setup')
 
     def lint(self, ref):
-        commit = self._resolve_commit(ref)
+        commit = MalleableCommit.from_existing(self.repo,
+                                               self._resolve_commit(ref).id)
 
-        op = LintOperation(self, commit)
-
-        with self._checked_out(commit.tree) as tmpdir:
-            op.run(tmpdir)
+        LintOperation(self, commit).run()
 
     def create_release(self, ref):
-        commit = self._resolve_commit(ref)
+        commit = MalleableCommit.from_existing(self.repo,
+                                               self._resolve_commit(ref).id)
 
-        op = CreateReleaseOperation(self, commit)
-
-        with self._checked_out(commit.tree) as tmpdir:
-            op.run(tmpdir)
+        CreateReleaseOperation(self, commit).run()
 
 
     def ____():

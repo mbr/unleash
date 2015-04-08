@@ -1,14 +1,12 @@
-import os
-
 PLUGIN_NAME = 'docs'
 
 
-def lint(app, lint):
+def lint(ctx):
     # for now, we enforce a single docs dir
-    doc_dir = os.path.join(lint.tmpdir, 'docs')
+    docs_dir = 'docs'
 
-    if not os.path.exists(doc_dir):
-        lint.report(
+    if not ctx.commit.path_exists(docs_dir):
+        ctx.report(
             'docs', 'No documentation folder found.',
             suggestion='Your commit does not contain a folder ''docs/''. No '
                        'docs will be built for this release. To fix this, '
