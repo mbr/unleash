@@ -73,11 +73,11 @@ class CreateReleaseOperation(CommitBasedOperation):
                          'inside a temporary checkout of the release commit. '
                          'No changes you make will persist. Exit the shell to '
                          'continue unleash.\n\n'
-                         'Use "exit 1" to abort the release.')
+                         'Use "exit 2" to abort the release.')
 
                 status = self.app.run_user_shell(cwd=inspect_dir)
 
-            if status != 0:
+            if status != 2:
                 log.error('Aborting release, got exit code {} from shell.'.
                           format(status))
                 return
