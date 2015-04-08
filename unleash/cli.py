@@ -12,14 +12,13 @@ log = logbook.Logger('cli')
 
 
 @click.group()
-@click.option('--root', '-r', default='.',
+@click.option('--batch', '-b', default=False, is_flag=True,
+              help='Do not ask for confirmation before committing changes.')
+@click.option('--debug', '-d', is_flag=True)
+@click.option('--repo', '-r', default='.',
               type=click.Path(exists=True, file_okay=False, dir_okay=True,
               resolve_path=True),
-              help='Package root directory.')
-@click.option('--batch', '-b', default=False, is_flag=True,
-              help='Do not ask for confirmation before committing changes to '
-              'anything.')
-@click.option('--debug', '-d', is_flag=True)
+              help='Path to git repository to use.')
 @click.version_option()
 @click.pass_obj
 def cli(unleash, root, debug, batch, **kwargs):
