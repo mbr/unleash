@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import os
 
 from blinker import signal
@@ -22,17 +23,24 @@ class LintOperation(IssueCollector):
         self.app = app
         self.commit = commit
 
-    def run(self):
+    def run(self, tmpdir):
         self.issues = []
+        self.tmpdir = tmpdir
 
-        # at this point, we know it's a commit. check out into temporary folder
-        with TempDir() as self.tmpdir:
-            export_tree(self.app.repo.object_store.__getitem__,
-                        self.app.repo[self.commit.tree],
-                        self.tmpdir)
+        # now we run all linting plugins
+        self.app.do_lint.send(self.app, lint=self)
+        log.info('Finished lint. Issues: {}'.format(len(self.issues)))
 
-            # now we run all linting plugins
-            self.app.do_lint.send(self.app, lint=self)
+
+class CreateReleaseOperation(object):
+    def __init__(self, app, commit):
+        self.app = app
+        self.commit = commit
+
+    def run(self, tmpdir):
+        # first, we lint the tree
+        lint = LintOperation(self.app, self.commit)
+        lint.run(tmpdir)
 
 
 class Unleash(object):
@@ -44,7 +52,7 @@ class Unleash(object):
     do_lint = signal('do_lint')
 
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
-        if self.interactive:
+        if self.opts['interactive']:
             click.confirm(text, default=default, abort=abort, **kwargs)
 
     def _resolve_commit(self, ref):
@@ -63,9 +71,17 @@ class Unleash(object):
 
         return commits[0]
 
-    def set_global_opts(self, root, batch, debug):
+    @contextmanager
+    def _checked_out(self, tree):
+        with TempDir() as tmpdir:
+            export_tree(self.repo.object_store.__getitem__,
+                        self.repo[tree],
+                        tmpdir)
+            yield tmpdir
+
+    def set_global_opts(self, root, debug=False, opts=None):
+        self.opts = opts or {}
         self.root = root
-        self.interactive = not batch
         self.debug = debug
 
         self.repo = Repo(root)
@@ -86,10 +102,20 @@ class Unleash(object):
         commit = self._resolve_commit(ref)
 
         op = LintOperation(self, commit)
-        op.run()
 
-    def create_release(self, author, branch, package_name, release_version,
-                       dev_version, run_tests, no_footer):
+        with self._checked_out(commit.tree) as tmpdir:
+            op.run(tmpdir)
+
+    def create_release(self, ref):
+        commit = self._resolve_commit(ref)
+
+        op = CreateReleaseOperation(self, commit)
+
+        with self._checked_out(commit.tree) as tmpdir:
+            op.run(tmpdir)
+
+
+    def ____():
         if no_footer:
             footer = ''
         else:
