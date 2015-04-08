@@ -4,12 +4,11 @@ from logbook.more import ColorizedStderrHandler
 from logbook.handlers import NullHandler
 
 from .exc import UnleashError
+from .plugin import collect_plugins, notify_plugins
 from .unleash import Unleash
 
+
 log = logbook.Logger('cli')
-
-
-pass_unleash = click.make_pass_decorator(Unleash, ensure=True)
 
 
 @click.group()
@@ -22,8 +21,8 @@ pass_unleash = click.make_pass_decorator(Unleash, ensure=True)
               'anything.')
 @click.option('--debug', '-d', is_flag=True)
 @click.version_option()
-@pass_unleash
-def cli(unleash, root, debug, batch):
+@click.pass_obj
+def cli(unleash, root, debug, batch, **kwargs):
     # setup logging
     loglevel = logbook.INFO
     if debug:
@@ -36,6 +35,8 @@ def cli(unleash, root, debug, batch):
     opts = {
         'interactive': not batch
     }
+
+    opts.update(kwargs)
 
     unleash.set_global_opts(root, debug, opts)
 
@@ -61,7 +62,7 @@ def cli(unleash, root, debug, batch):
               default=True,
               help='Set the committer to unleash (default: enabled).')
 @click.argument('ref')
-@pass_unleash
+@click.pass_obj
 def create_release(unleash, ref, **kwargs):
     unleash.opts.update(kwargs)
     unleash.create_release(ref)
@@ -69,7 +70,7 @@ def create_release(unleash, ref, **kwargs):
 
 @cli.command('lint')
 @click.argument('ref')
-@pass_unleash
+@click.pass_obj
 def lint(unleash, ref, **kwargs):
     unleash.opts.update(kwargs)
     unleash.lint(ref)
@@ -80,13 +81,19 @@ def lint(unleash, ref, **kwargs):
               help='Turn off code signing.')
 @click.option('--tag', '-t',
               help='Tag to publish. Default is the latest tag created.')
-@pass_unleash
+@click.pass_obj
 def publish(unleash, **kwargs):
     unleash.publish(**kwargs)
 
 
 def main():
     try:
-        cli()
+        plugins = collect_plugins()
+        notify_plugins(plugins, 'setup', cli)
+
+        # instantiate application object
+        unleash = Unleash(plugins)
+
+        cli(obj=unleash)
     except UnleashError as e:
         log.critical(e)

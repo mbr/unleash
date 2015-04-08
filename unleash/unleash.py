@@ -8,11 +8,11 @@ from dulwich.objects import Commit
 from logbook import Logger
 from tempdir import TempDir
 
-from . import plugin_base, plugins
 from .exc import ReleaseError, InvocationError
 from .git import prepare_commit, resolve, export_tree, MalleableCommit
 from .issues import IssueCollector
 from .version import NormalizedVersion, find_version
+from .plugin import notify_plugins
 
 log = Logger('unleash')
 
@@ -106,20 +106,11 @@ class Unleash(object):
                         tmpdir)
             yield tmpdir
 
-    def notify_plugins(self, funcname, *args, **kwargs):
-        rvs = []
+    def __init__(self, plugins=[]):
+        self.plugins = plugins
 
-        for plugin in self.plugins:
-            func = getattr(plugin, funcname, None)
-
-            if func is None or not callable(func):
-                continue
-
-            log.debug('plugin-{}: {}'.format(funcname, plugin.PLUGIN_NAME))
-
-            rvs.append(func(*args, **kwargs))
-
-        return rvs
+    def notify_plugins(self, *args, **kwargs):
+        notify_plugins(self.plugins, *args, **kwargs)
 
     def set_global_opts(self, root, debug=False, opts=None):
         self.opts = opts or {}
@@ -128,28 +119,6 @@ class Unleash(object):
 
         self.repo = Repo(root)
         self.gitconfig = self.repo.get_config_stack()
-
-        # discover and load plugins
-        self.plugin_source = plugin_base.make_plugin_source(
-            searchpath=[os.path.dirname(plugins.__file__)]
-        )
-
-        self.plugins = []
-
-        with self.plugin_source:
-            for plugin_name in self.plugin_source.list_plugins():
-                plugin = self.plugin_source.load_plugin(plugin_name)
-
-                if not hasattr(plugin, 'PLUGIN_NAME'):
-                    log.debug(
-                        'Skipping module {}, has no attribute PLUGIN_NAME'.
-                        format(plugin))
-                    continue
-
-                self.plugins.append(plugin)
-
-        # initialize all plugins that require it
-        self.notify_plugins('setup')
 
     def lint(self, ref):
         commit = MalleableCommit.from_existing(self.repo,
