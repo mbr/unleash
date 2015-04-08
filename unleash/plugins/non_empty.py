@@ -1,11 +1,8 @@
-from blinker import signal
 import os
 
+PLUGIN_NAME = 'non-empty'
 
-def on_lint(app, lint):
+
+def lint(app, lint):
     if os.listdir(lint.tmpdir) == []:
         lint.report('non-empty', 'Commit is empty')
-
-
-def setup(unleash):
-    signal('do_lint').connect(on_lint)

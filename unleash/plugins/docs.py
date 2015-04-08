@@ -1,9 +1,9 @@
 import os
 
-from blinker import signal
+PLUGIN_NAME = 'docs'
 
 
-def on_lint(app, lint):
+def lint(app, lint):
     # for now, we enforce a single docs dir
     doc_dir = os.path.join(lint.tmpdir, 'docs')
 
@@ -13,7 +13,3 @@ def on_lint(app, lint):
             suggestion='Your commit does not contain a folder ''docs/''. No '
                        'docs will be built for this release. To fix this, '
                        'create the folder containing Sphinx-documentation.')
-
-
-def setup(unleash):
-    signal('do_lint').connect(on_lint)

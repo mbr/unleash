@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 import os
 
-from blinker import signal
 import click
 from dulwich.repo import Repo
 from dulwich.objects import Commit
@@ -17,6 +16,15 @@ from .version import NormalizedVersion, find_version
 log = Logger('unleash')
 
 
+def mcall(obj, meth, *args, **kwargs):
+    func = getattr(obj, meth, None)
+
+    if func is None or not callable(func):
+        return None
+
+    return func(*args, **kwargs)
+
+
 class LintOperation(IssueCollector):
     def __init__(self, app, commit):
         super(LintOperation, self).__init__()
@@ -28,7 +36,7 @@ class LintOperation(IssueCollector):
         self.tmpdir = tmpdir
 
         # now we run all linting plugins
-        self.app.do_lint.send(self.app, lint=self)
+        self.app.notify_plugins('lint', self.app, lint=self)
         log.info('Finished lint. Issues: {}'.format(len(self.issues)))
 
 
@@ -47,9 +55,6 @@ class Unleash(object):
     default_footer = u'\n\n[commit by unleash {}]'
     release_msg = u'Release version {}.{}'
     dev_msg = u'Increased version to {} after release of {}.{}'
-
-    # signals
-    do_lint = signal('do_lint')
 
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
         if self.opts['interactive']:
@@ -79,6 +84,15 @@ class Unleash(object):
                         tmpdir)
             yield tmpdir
 
+    def notify_plugins(self, funcname, *args, **kwargs):
+        rvs = []
+
+        for plugin in self.plugins:
+            log.debug('plugin-{}: {}'.format(funcname, plugin.PLUGIN_NAME))
+            rvs.append(mcall(plugin, funcname, *args, **kwargs))
+
+        return rvs
+
     def set_global_opts(self, root, debug=False, opts=None):
         self.opts = opts or {}
         self.root = root
@@ -92,11 +106,22 @@ class Unleash(object):
             searchpath=[os.path.dirname(plugins.__file__)]
         )
 
+        self.plugins = []
+
         with self.plugin_source:
             for plugin_name in self.plugin_source.list_plugins():
-                log.debug('Loading plugin: {}'.format(plugin_name))
                 plugin = self.plugin_source.load_plugin(plugin_name)
-                plugin.setup(self)
+
+                if not hasattr(plugin, 'PLUGIN_NAME'):
+                    log.debug(
+                        'Skipping module {}, has no attribute PLUGIN_NAME'.
+                        format(plugin))
+                    continue
+
+                self.plugins.append(plugin)
+
+        # initialize all plugins that require it
+        self.notify_plugins('setup')
 
     def lint(self, ref):
         commit = self._resolve_commit(ref)
