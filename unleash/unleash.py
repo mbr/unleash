@@ -41,11 +41,23 @@ class LintOperation(CommitBasedOperation):
 
 class CreateReleaseOperation(CommitBasedOperation):
     def run(self):
+        opts = self.app.opts
+        commit = self.commit
+
+        # update author and such
+        if opts['author'] is None:
+            commit.author = '{} <{}>'.format(
+                self.app.gitconfig.get('user', 'name'),
+                self.app.gitconfig.get('user', 'email'),
+            )
+            commit.commiter = commit.author
+        else:
+            commit.author = opts['author']
+            commit.committer = opts['author']
+
         # first, we lint the tree
         lint = LintOperation(self.app, self.commit)
         lint.run()
-
-        # FIXME: create release
 
 
 class Unleash(object):
@@ -96,7 +108,7 @@ class Unleash(object):
         self.debug = debug
 
         self.repo = Repo(root)
-        self.config = self.repo.get_config_stack()
+        self.gitconfig = self.repo.get_config_stack()
 
         # discover and load plugins
         self.plugin_source = plugin_base.make_plugin_source(
@@ -139,23 +151,6 @@ class Unleash(object):
         else:
             from . import __version__
             footer = self.default_footer.format(__version__)
-
-        # detect author
-        if author is None:
-            author = '{} <{}>'.format(
-                self.config.get('user', 'name'),
-                self.config.get('user', 'email'),
-            )
-
-        # create ref for branch to release
-        refname = 'refs/heads/{}'.format(branch).encode('ascii')
-        if not refname in self.repo.refs:
-            raise ReleaseError('Could not find %s' % refname)
-
-        # find tree of commit
-        commit = self.repo[refname]
-        tree = self.repo[commit.tree]
-        log.debug('tree found: %s' % tree.id)
 
         # determine version:
         # retrieve version from setup.py, use version in there as the
