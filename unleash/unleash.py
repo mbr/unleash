@@ -137,12 +137,6 @@ class Unleash(object):
 
 
     def ____():
-        if no_footer:
-            footer = ''
-        else:
-            from . import __version__
-            footer = self.default_footer.format(__version__)
-
         # determine version:
         # retrieve version from setup.py, use version in there as the
         # canonical version, unless specified otherwise
