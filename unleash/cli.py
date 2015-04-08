@@ -55,7 +55,8 @@ def cli(unleash, root, debug, batch, **kwargs):
               help='Set released version to this.')
 @click.option('--lint/--no-lint', '-l/-T', 'run_tests', default=True,
               help='Lint before releasing (default: enabled).')
-@click.argument('ref')
+@click.option('--ref', '-r', default='HEAD',
+              help='Branch/Tag/Commit to release.')
 @click.pass_obj
 def release(unleash, ref, **kwargs):
     unleash.opts.update(kwargs)
@@ -63,7 +64,8 @@ def release(unleash, ref, **kwargs):
 
 
 @cli.command()
-@click.argument('ref')
+@click.option('--ref', '-r', default='HEAD',
+              help='Branch/Tag/Commit to lint.')
 @click.pass_obj
 def lint(unleash, ref, **kwargs):
     unleash.opts.update(kwargs)
