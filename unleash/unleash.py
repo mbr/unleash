@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 import os
+import subprocess
 
 import click
 from dulwich.repo import Repo
@@ -58,6 +59,26 @@ class CreateReleaseOperation(CommitBasedOperation):
         # first, we lint the tree
         lint = LintOperation(self.app, self.commit)
         lint.run()
+
+        # FIXME: run release operations
+
+        if opts['inspect']:
+            # check out to temporary directory
+            with TempDir() as inspect_dir:
+                commit.export_to(inspect_dir)
+
+                log.info('You are being dropped into an interactive shell '
+                         'inside a temporary checkout of the release commit. '
+                         'No changes you make will persist. Exit the shell to '
+                         'continue unleash.\n\n'
+                         'Use "exit 1" to abort the release.')
+
+                status = self.app.run_user_shell(cwd=inspect_dir)
+
+            if status != 0:
+                log.error('Aborting release, got exit code {} from shell.'.
+                          format(status))
+                return
 
 
 class Unleash(object):
@@ -143,6 +164,9 @@ class Unleash(object):
                                                self._resolve_commit(ref).id)
 
         CreateReleaseOperation(self, commit).run()
+
+    def run_user_shell(self, **kwargs):
+        return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
 
 
     def ____():

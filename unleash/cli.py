@@ -44,6 +44,9 @@ def cli(unleash, root, debug, batch):
 @click.option('--author', '-a', default=None,
               help='Author string for commits (uses git configured settings '
                    'per default')
+@click.option('--inspect', '-i', is_flag=True, default=False,
+              help='After processing, check out the commit interactively in a '
+                   'shell.')
 @click.option('--package-name', '-p',
               help='The name of the package to be packaged.')
 @click.option('--dev-version', '-d',
