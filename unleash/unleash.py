@@ -75,7 +75,6 @@ class CreateReleaseOperation(CommitBasedOperation):
 
 
 class Unleash(object):
-    default_footer = u'\n\n[commit by unleash {}]'
     release_msg = u'Release version {}.{}'
     dev_msg = u'Increased version to {} after release of {}.{}'
 

@@ -53,11 +53,10 @@ def cli(unleash, root, debug, batch):
               help='Set new development version to this.')
 @click.option('--release-version', '-v',
               help='Set released version to this.')
-@click.option('--skip-tests', '-T', 'run_tests', default=True,
-              flag_value=False, is_flag=True,
-              help='Do not run tests if tests are found.')
-@click.option('--no-footer', '-F', default=False, is_flag=True,
-              help='Do not output footer on commit messages.')
+@click.option('--lint/--no-lint', '-l/-T', 'run_tests', default=True,
+              help='Lint before releasing (default: enabled).')
+@click.option('--footer/--no-footer', '-f/-F', default=False,
+              help='Mark commits as created by unleash (default: disabled).')
 @click.argument('ref')
 @pass_unleash
 def create_release(unleash, ref, **kwargs):
