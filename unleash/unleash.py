@@ -68,8 +68,8 @@ class CreateReleaseOperation(CommitBasedOperation):
                 log.info('You are being dropped into an interactive shell '
                          'inside a temporary checkout of the release commit. '
                          'No changes you make will persist. Exit the shell to '
-                         'continue unleash.\n\n'
-                         'Use "exit 2" to abort the release.')
+                         'abort the release process.\n\n'
+                         'Use "exit 2" to continue the release.')
 
                 status = self.app.run_user_shell(cwd=inspect_dir)
 
