@@ -23,25 +23,27 @@ pass_unleash = click.make_pass_decorator(Unleash, ensure=True)
 @click.option('--debug', '-d', is_flag=True)
 @click.version_option()
 @pass_unleash
-def cli(unleash, **kwargs):
+def cli(unleash, root, debug, batch):
     # setup logging
     loglevel = logbook.INFO
-    if kwargs['debug']:
+    if debug:
         loglevel = logbook.DEBUG
 
     NullHandler().push_application()
     ColorizedStderrHandler(format_string='{record.message}',
                            level=loglevel).push_application()
 
-    unleash.set_global_opts(**kwargs)
+    opts = {
+        'interactive': not batch
+    }
+
+    unleash.set_global_opts(root, debug, opts)
 
 
 @cli.command('create-release')
 @click.option('--author', '-a', default=None,
               help='Author string for commits (uses git configured settings '
                    'per default')
-@click.option('--branch', '-b', default='master',
-              help='Branch to cut the release from.')
 @click.option('--package-name', '-p',
               help='The name of the package to be packaged.')
 @click.option('--dev-version', '-d',
@@ -53,16 +55,19 @@ def cli(unleash, **kwargs):
               help='Do not run tests if tests are found.')
 @click.option('--no-footer', '-F', default=False, is_flag=True,
               help='Do not output footer on commit messages.')
+@click.argument('ref')
 @pass_unleash
-def create_release(unleash, **kwargs):
-    unleash.create_release(**kwargs)
+def create_release(unleash, ref, **kwargs):
+    unleash.opts.update(kwargs)
+    unleash.create_release(ref)
 
 
 @cli.command('lint')
 @click.argument('ref')
 @pass_unleash
-def lint(unleash, **kwargs):
-    unleash.lint(**kwargs)
+def lint(unleash, ref, **kwargs):
+    unleash.opts.update(kwargs)
+    unleash.lint(ref)
 
 
 @cli.command()
