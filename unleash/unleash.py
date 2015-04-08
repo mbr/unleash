@@ -56,10 +56,6 @@ class CreateReleaseOperation(CommitBasedOperation):
             commit.author = opts['author']
             commit.committer = opts['author']
 
-        # first, we lint the tree
-        lint = LintOperation(self.app, commit)
-        lint.run()
-
         # FIXME: run release operations
 
         log.info(unicode(self.commit))
@@ -81,6 +77,10 @@ class CreateReleaseOperation(CommitBasedOperation):
                 log.error('Aborting release, got exit code {} from shell.'.
                           format(status))
                 return
+
+        # lint the resulting commmit
+        lint = LintOperation(self.app, commit)
+        lint.run()
 
 
 class Unleash(object):
