@@ -56,7 +56,10 @@ def cli(unleash, root, debug, batch):
 @click.option('--lint/--no-lint', '-l/-T', 'run_tests', default=True,
               help='Lint before releasing (default: enabled).')
 @click.option('--footer/--no-footer', '-f/-F', default=False,
-              help='Mark commits as created by unleash (default: disabled).')
+              help='Add "created by unleash" footer (default: disabled).')
+@click.option('--unleash-committer/--no-unleash-committer', '-c/-C',
+              default=True,
+              help='Set the committer to unleash (default: enabled).')
 @click.argument('ref')
 @pass_unleash
 def create_release(unleash, ref, **kwargs):
