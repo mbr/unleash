@@ -200,6 +200,13 @@ class MalleableCommit(object):
     def export_to(self, path):
         export_tree(self._lookup_chain.__getitem__, self.tree, path)
 
+    def path_exists(self, path):
+        try:
+            self.get_path_data(path)
+            return True
+        except KeyError:
+            return False
+
     def get_path_id(self, path):
         return self._lookup(path)[1]
 

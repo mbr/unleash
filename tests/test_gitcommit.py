@@ -175,3 +175,12 @@ def test_my_resolve(repo):
 
     assert [c] == resolve(repo, repo.__getitem__, 'master')
     assert [] == resolve(repo, repo.__getitem__, 'meh')
+
+
+def test_path_exists(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+
+    assert c.path_exists('foo.txt')
+    assert not c.path_exists('xx')
