@@ -184,3 +184,12 @@ def test_path_exists(repo):
 
     assert c.path_exists('foo.txt')
     assert not c.path_exists('xx')
+
+
+def test_to_commit(repo):
+    master = repo.refs['refs/heads/master']
+
+    c = MalleableCommit.from_existing(repo, master)
+
+    raw_commit = c.to_commit()
+    assert raw_commit.tree == repo[master].tree
