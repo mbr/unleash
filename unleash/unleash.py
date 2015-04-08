@@ -57,10 +57,12 @@ class CreateReleaseOperation(CommitBasedOperation):
             commit.committer = opts['author']
 
         # first, we lint the tree
-        lint = LintOperation(self.app, self.commit)
+        lint = LintOperation(self.app, commit)
         lint.run()
 
         # FIXME: run release operations
+
+        log.info(unicode(self.commit))
 
         if opts['inspect']:
             # check out to temporary directory

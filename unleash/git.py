@@ -148,6 +148,9 @@ class MalleableCommit(object):
 
         return new_commit
 
+    def __unicode__(self):
+        return self.to_commit().as_pretty_string().decode(self.encoding)
+
     def set_path_data(self, path, data, mode=0100644):
         blob = Blob.from_string(data)
         self.new_objects[blob.id] = blob
