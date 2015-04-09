@@ -1,6 +1,6 @@
 from logbook import Logger
 
-log = Logger('issue')
+log = Logger('unleash')
 
 
 class Issue(object):
@@ -8,9 +8,7 @@ class Issue(object):
     #   warning  - can be ignored and still release
     #   error    - prevents releasing, issue with source
     #   critical - unexpected error, might be out of our hands or program bug
-
     def __init__(self, channel, message, severity='warning', suggestion=None):
-
         assert severity in ('warning', 'error', 'critical')
         self.message = message
         self.severity = severity
@@ -32,6 +30,7 @@ class Issue(object):
 class IssueCollector(object):
     def __init__(self):
         self.issues = []
+        self.log = log
 
     def report(self, *args, **kwargs):
         issue = Issue(*args, **kwargs)
