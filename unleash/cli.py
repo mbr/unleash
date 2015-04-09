@@ -49,10 +49,6 @@ def cli(unleash, root, debug, batch, **kwargs):
                    'shell.')
 @click.option('--package-name', '-p',
               help='The name of the package to be packaged.')
-@click.option('--dev-version', '-d',
-              help='Set new development version to this.')
-@click.option('--release-version', '-v',
-              help='Set released version to this.')
 @click.option('--lint/--no-lint', '-l/-T', 'run_tests', default=True,
               help='Lint before releasing (default: enabled).')
 @click.option('--ref', '-r', default='HEAD',
