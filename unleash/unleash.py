@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from pprint import pformat
 import os
 import subprocess
 
@@ -46,6 +47,12 @@ class CreateReleaseOperation(CommitBasedOperation):
         else:
             commit.author = opts['author']
             commit.committer = opts['author']
+
+        self.info = {}
+
+        self.app.notify_plugins('collect_release_info', ctx=self)
+
+        log.debug('Collected information:\n{}'.format(pformat(self.info)))
 
         self.app.notify_plugins('prepare_release', ctx=self)
 
