@@ -22,7 +22,7 @@ setup(
     license='MIT',
     packages=find_packages(exclude=['test']),
     install_requires=['click>=4.0', 'dulwich', 'logbook', 'tempdir>=0.6',
-                      'virtualenv>=1.10.1', 'python-dateutil', 'verlib',
+                      'virtualenv>=1.10.1', 'python-dateutil', 'versio',
                       'stuf', 'pluginbase'],
     entry_points={
         'console_scripts': [

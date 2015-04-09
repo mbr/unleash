@@ -8,7 +8,6 @@ from dulwich.objects import S_ISGITLINK, Blob, Commit, Tree
 import logbook
 from stuf.collects import ChainMap
 
-from .version import find_assign, replace_assign
 
 log = logbook.Logger('git')
 

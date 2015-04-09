@@ -12,7 +12,6 @@ from tempdir import TempDir
 from .exc import ReleaseError, InvocationError
 from .git import prepare_commit, resolve, export_tree, MalleableCommit
 from .issues import IssueCollector
-from .version import NormalizedVersion, find_version
 from .plugin import notify_plugins
 
 log = Logger('unleash')
@@ -145,15 +144,6 @@ class Unleash(object):
 
     def ____():
         # determine version:
-        # retrieve version from setup.py, use version in there as the
-        # canonical version, unless specified otherwise
-        try:
-            setuppy_mode, setuppy_id = tree['setup.py']
-            setuppy = self.repo[setuppy_id]
-        except KeyError:
-            raise ReleaseError('setup.py not found in repository root')
-        version = find_version(setuppy.data, 'version')
-
         # release version defaults to canonical version
         if release_version is None:
             release_version = version.copy()
