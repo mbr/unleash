@@ -5,6 +5,10 @@ from unleash import __version__ as unleash_version
 
 PLUGIN_NAME = 'footer'
 
+# make sure version info is written first, so the footer does not get
+# overwritten
+PLUGIN_DEPENDS = ['versions']
+
 FOOTER_FORMAT = u'\n[commit by unleash {}]\n'
 
 
