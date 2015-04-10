@@ -73,12 +73,14 @@ class Unleash(object):
             commit.author = opts['author']
             commit.committer = opts['author']
 
+        issues = IssueCollector()
+
         # create context
         context = {
             'commit': commit,
             'opts': opts,
             'info': {},
-            'issues': IssueCollector(),
+            'issue': issues.channel('collect'),
             'log': log,
         }
 
@@ -90,6 +92,7 @@ class Unleash(object):
         )
 
         log.info('Preparing release.')
+        context['issue'] = issues.channel('prepare_release')
         self.plugins.notify('prepare_release', ctx=context)
 
         if opts['inspect']:
@@ -112,6 +115,7 @@ class Unleash(object):
                 return
 
         log.info('Linting release.')
+        context['issue'] = issues.channel('lint')
         self.plugins.notify('lint_release', ctx=context)
 
     def run_user_shell(self, **kwargs):

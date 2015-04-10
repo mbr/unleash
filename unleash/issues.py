@@ -1,3 +1,6 @@
+from contextlib import contextmanager
+
+
 class Issue(object):
     # severities are:
     #   warning  - can be ignored and still release
@@ -22,6 +25,15 @@ class Issue(object):
         return u'<Issue {!r}>'.format(self.message)
 
 
+class ChannelReporter(object):
+    def __init__(self, collector, channel_name):
+        self.collector = collector
+        self.channel_name = channel_name
+
+    def report(self, *args, **kwargs):
+        self.collector.report(self.channel_name, *args, **kwargs)
+
+
 class IssueCollector(object):
     def __init__(self):
         self.issues = []
@@ -29,3 +41,7 @@ class IssueCollector(object):
     def report(self, *args, **kwargs):
         issue = Issue(*args, **kwargs)
         self.issues.append(issue)
+
+    @contextmanager
+    def channel(self, channel_name):
+        yield ChannelReporter(self, channel_name)
