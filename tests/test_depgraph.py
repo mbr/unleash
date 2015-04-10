@@ -52,3 +52,11 @@ def test_remove_dependency(dg):
 
 def test_resolve_order(dg):
     assert dg.resolve_order() == ['A', 'C', 'B', 'F', 'E', 'D']
+
+
+def test_dag_enforced(dg):
+    with pytest.raises(ValueError):
+        dg.add_obj('A', ['B'])
+
+    with pytest.raises(ValueError):
+        dg.add_dependency('A', 'B')

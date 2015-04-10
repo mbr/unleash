@@ -8,19 +8,26 @@ class DependencyGraph(object):
         self.g = nx.DiGraph()
 
     def add_dependency(self, obj, depending_on):
-        self.g.add_edge(obj, depending_on)
+        ng = self.g.copy()
+        ng.add_edge(obj, depending_on)
+
+        # check if adding these dependencies would add a cyclic dependency
+        if not is_directed_acyclic_graph(ng):
+            raise ValueError('Adding a dependency of {} on {} introduces a '
+                             'dependency cycle!.'.format(obj, depending_on))
+
+        self.g = ng
 
     def add_obj(self, obj, depends_on=[]):
         self.g.add_node(obj)
 
-        # check if adding these dependencies would add a cyclic dependency
         ng = self.g.copy()
-
         ng.add_edges_from((obj, d) for d in depends_on)
 
+        # check if adding these dependencies would add a cyclic dependency
         if not is_directed_acyclic_graph(ng):
             raise ValueError('Adding {} with dependencies {} introduces a '
-                             'dependency cycle!.')
+                             'dependency cycle!.'.format(obj, depends_on))
 
         self.g = ng
 
