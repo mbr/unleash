@@ -38,6 +38,7 @@ def cli(unleash, root, debug, batch, **kwargs):
     opts.update(kwargs)
 
     unleash.set_global_opts(root, debug, opts)
+    log.debug('Plugin order: {}'.format(unleash.plugins.resolve_order()))
 
 
 @cli.command()
