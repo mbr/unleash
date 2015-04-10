@@ -80,9 +80,6 @@ class CreateReleaseOperation(CommitBasedOperation):
 
 
 class Unleash(object):
-    release_msg = u'Release version {}.{}'
-    dev_msg = u'Increased version to {} after release of {}.{}'
-
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
         if self.opts['interactive']:
             click.confirm(text, default=default, abort=abort, **kwargs)
