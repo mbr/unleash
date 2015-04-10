@@ -25,7 +25,7 @@ def setup(cli):
 
 
 def prepare_release(ctx):
-    if ctx.app.opts['footer']:
+    if ctx['opts']['footer']:
         ctx.commit.message += FOOTER_FORMAT.format(unleash_version)
-    if ctx.app.opts['unleash_committer']:
+    if ctx['opts']['unleash_committer']:
         ctx.commit.committer = 'unleash <{}>'.format(unleash_version)
