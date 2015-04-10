@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 from .exc import PluginError
 
 
@@ -32,20 +30,20 @@ class ChannelReporter(object):
         self.collector = collector
         self.channel_name = channel_name
 
-    def warn(self, message, suggestion):
+    def warn(self, message, suggestion=None):
         self.collector.report(self.channel_name,
                               message,
                               severity='warning',
                               suggestion=suggestion)
 
-    def error(self, message, suggestion):
+    def error(self, message, suggestion=None):
         self.collector.report(self.channel_name,
                               message,
                               severity='error',
                               suggestion=suggestion)
         raise PluginError('Plugin reported error.')
 
-    def critical(self, message, suggestion):
+    def critical(self, message, suggestion=None):
         self.collector.report(self.channel_name,
                               message,
                               severity='critical',
@@ -54,13 +52,16 @@ class ChannelReporter(object):
 
 
 class IssueCollector(object):
-    def __init__(self):
+    def __init__(self, log = None):
         self.issues = []
+        self.log = log
 
     def report(self, *args, **kwargs):
         issue = Issue(*args, **kwargs)
         self.issues.append(issue)
 
-    @contextmanager
+        if self.log:
+            getattr(self.log, issue.severity)(issue.message)
+
     def channel(self, channel_name):
-        yield ChannelReporter(self, channel_name)
+        return ChannelReporter(self, channel_name)

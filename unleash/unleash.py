@@ -9,7 +9,7 @@ from dulwich.objects import Commit
 from logbook import Logger
 from tempdir import TempDir
 
-from .exc import ReleaseError, InvocationError
+from .exc import ReleaseError, InvocationError, PluginError
 from .git import resolve, export_tree, MalleableCommit
 from .issues import IssueCollector
 
@@ -73,50 +73,55 @@ class Unleash(object):
             commit.author = opts['author']
             commit.committer = opts['author']
 
-        issues = IssueCollector()
+        issues = IssueCollector(log=log)
 
         # create context
         context = {
             'commit': commit,
             'opts': opts,
             'info': {},
-            'issue': issues.channel('collect'),
+            'issues': issues.channel('collect'),
             'log': log,
         }
 
-        log.info('Collecting release information.')
-        self.plugins.notify('collect_info', ctx=context)
+        try:
+            log.info('Collecting release information.')
+            self.plugins.notify('collect_info', ctx=context)
 
-        log.debug('Collected information:\n{}'.format(
-            pformat(context['info']))
-        )
+            log.debug('Collected information:\n{}'.format(
+                pformat(context['info']))
+            )
 
-        log.info('Preparing release.')
-        context['issue'] = issues.channel('prepare_release')
-        self.plugins.notify('prepare_release', ctx=context)
+            log.info('Preparing release.')
+            context['issues'] = issues.channel('prepare_release')
+            self.plugins.notify('prepare_release', ctx=context)
 
-        if opts['inspect']:
-            log.info(unicode(self.commit))
-            # check out to temporary directory
-            with TempDir() as inspect_dir:
-                commit.export_to(inspect_dir)
+            if opts['inspect']:
+                log.info(unicode(self.commit))
+                # check out to temporary directory
+                with TempDir() as inspect_dir:
+                    commit.export_to(inspect_dir)
 
-                log.info('You are being dropped into an interactive shell '
-                         'inside a temporary checkout of the release commit. '
-                         'No changes you make will persist. Exit the shell to '
-                         'abort the release process.\n\n'
-                         'Use "exit 2" to continue the release.')
+                    log.info('You are being dropped into an interactive shell '
+                             'inside a temporary checkout of the release '
+                             'commit. No changes you make will persist. Exit '
+                             'the shell to abort the release process.\n\n'
+                             'Use "exit 2" to continue the release.')
 
-                status = self.app.run_user_shell(cwd=inspect_dir)
+                    status = self.app.run_user_shell(cwd=inspect_dir)
 
-            if status != 2:
-                log.error('Aborting release, got exit code {} from shell.'.
-                          format(status))
-                return
+                if status != 2:
+                    log.error('Aborting release, got exit code {} from shell.'.
+                              format(status))
+                    return
 
-        log.info('Linting release.')
-        context['issue'] = issues.channel('lint')
-        self.plugins.notify('lint_release', ctx=context)
+            log.info('Linting release.')
+            context['issues'] = issues.channel('lint')
+            self.plugins.notify('lint_release', ctx=context)
+        except PluginError:
+            # just abort, error has been logged already
+            log.debug('Exiting due to PluginError')
+            return
 
     def run_user_shell(self, **kwargs):
         return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
