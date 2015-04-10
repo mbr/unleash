@@ -12,7 +12,6 @@ from tempdir import TempDir
 from .exc import ReleaseError, InvocationError
 from .git import prepare_commit, resolve, export_tree, MalleableCommit
 from .issues import IssueCollector
-from .plugin import notify_plugins
 
 log = Logger('unleash')
 
@@ -27,7 +26,7 @@ class CommitBasedOperation(IssueCollector):
 class LintOperation(CommitBasedOperation):
     def run(self):
         # now we run all linting plugins
-        self.app.notify_plugins('lint', ctx=self)
+        self.app.plugins.notify('lint', ctx=self)
         log.info('Finished lint. Issues: {}'.format(len(self.issues)))
 
 
@@ -49,11 +48,11 @@ class CreateReleaseOperation(CommitBasedOperation):
 
         self.info = {}
 
-        self.app.notify_plugins('collect_release_info', ctx=self)
+        self.app.plugins.notify('collect_release_info', ctx=self)
 
         log.debug('Collected information:\n{}'.format(pformat(self.info)))
 
-        self.app.notify_plugins('prepare_release', ctx=self)
+        self.app.plugins.notify('prepare_release', ctx=self)
 
         log.info(unicode(self.commit))
 
@@ -114,9 +113,6 @@ class Unleash(object):
 
     def __init__(self, plugins=[]):
         self.plugins = plugins
-
-    def notify_plugins(self, *args, **kwargs):
-        notify_plugins(self.plugins, *args, **kwargs)
 
     def set_global_opts(self, root, debug=False, opts=None):
         self.opts = opts or {}

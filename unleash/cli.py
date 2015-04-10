@@ -4,7 +4,7 @@ from logbook.more import ColorizedStderrHandler
 from logbook.handlers import NullHandler
 
 from .exc import UnleashError
-from .plugin import collect_plugins, notify_plugins
+from .plugin import PluginGraph
 from .unleash import Unleash
 
 
@@ -80,8 +80,9 @@ def publish(unleash, **kwargs):
 
 def main():
     try:
-        plugins = collect_plugins()
-        notify_plugins(plugins, 'setup', cli)
+        plugins = PluginGraph()
+        plugins.collect_plugins()
+        plugins.notify('setup', cli)
 
         # instantiate application object
         unleash = Unleash(plugins)

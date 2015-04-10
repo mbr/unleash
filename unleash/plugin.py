@@ -3,40 +3,53 @@ import os
 from pluginbase import PluginBase
 
 from . import plugins
+from .depgraph import DependencyGraph
 
 plugin_base = PluginBase(package='unleash.plugins')
 
 
-def collect_plugins():
-    # discover and load plugins
-    plugin_source = plugin_base.make_plugin_source(
-        persist=True,
-        searchpath=[os.path.dirname(plugins.__file__)]
-    )
+class PluginGraph(DependencyGraph):
+    NAME_ATTR = 'PLUGIN_NAME'
+    DEP_ATTR = 'PLUGIN_DEPENDS'
 
-    mods = []
+    def __init__(self, *args, **kwargs):
+        super(PluginGraph, self).__init__(*args, **kwargs)
+        self.plugin_mods = {}
 
-    with plugin_source:
-        for plugin_name in plugin_source.list_plugins():
-            pl = plugin_source.load_plugin(plugin_name)
+    def add_plugin(self, plugin):
+        name = getattr(plugin, self.NAME_ATTR)
+        self.plugin_mods[name] = plugin
 
-            # skip modules without ``PLUGIN_NAME`` attribute
-            if not hasattr(pl, 'PLUGIN_NAME'):
+        self.add_obj(name, depends_on=getattr(plugin, self.DEP_ATTR, []))
+
+    def collect_plugins(self):
+        # discover and load plugins
+        plugin_source = plugin_base.make_plugin_source(
+            persist=True,
+            searchpath=[os.path.dirname(plugins.__file__)]
+        )
+
+        with plugin_source:
+            for plugin_name in plugin_source.list_plugins():
+                pl = plugin_source.load_plugin(plugin_name)
+
+                # skip modules without ``PLUGIN_NAME`` attribute
+                if not hasattr(pl, self.NAME_ATTR):
+                    continue
+
+                self.add_plugin(pl)
+
+    def notify(self, funcname, *args, **kwargs):
+        rvs = []
+
+        for plugin_name in self.resolve_order():
+            plugin = self.plugin_mods[plugin_name]
+
+            func = getattr(plugin, funcname, None)
+
+            if func is None or not callable(func):
                 continue
 
-            mods.append(pl)
-    return mods
+            rvs.append(func(*args, **kwargs))
 
-
-def notify_plugins(plugins, funcname, *args, **kwargs):
-    rvs = []
-
-    for plugin in plugins:
-        func = getattr(plugin, funcname, None)
-
-        if func is None or not callable(func):
-            continue
-
-        rvs.append(func(*args, **kwargs))
-
-    return rvs
+        return rvs
