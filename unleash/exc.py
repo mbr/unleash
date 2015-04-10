@@ -8,3 +8,7 @@ class InvocationError(UnleashError):
 
 class ReleaseError(UnleashError):
     pass
+
+
+class PluginError(UnleashError):
+    pass

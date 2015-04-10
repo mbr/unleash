@@ -1,5 +1,7 @@
 from contextlib import contextmanager
 
+from .exc import PluginError
+
 
 class Issue(object):
     # severities are:
@@ -30,8 +32,25 @@ class ChannelReporter(object):
         self.collector = collector
         self.channel_name = channel_name
 
-    def report(self, *args, **kwargs):
-        self.collector.report(self.channel_name, *args, **kwargs)
+    def warn(self, message, suggestion):
+        self.collector.report(self.channel_name,
+                              message,
+                              severity='warning',
+                              suggestion=suggestion)
+
+    def error(self, message, suggestion):
+        self.collector.report(self.channel_name,
+                              message,
+                              severity='error',
+                              suggestion=suggestion)
+        raise PluginError('Plugin reported error.')
+
+    def critical(self, message, suggestion):
+        self.collector.report(self.channel_name,
+                              message,
+                              severity='critical',
+                              suggestion=suggestion)
+        raise PluginError('Plugin reported critical error')
 
 
 class IssueCollector(object):
