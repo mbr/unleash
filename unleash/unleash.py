@@ -122,12 +122,6 @@ class Unleash(object):
         self.repo = Repo(root)
         self.gitconfig = self.repo.get_config_stack()
 
-    def lint(self, ref):
-        commit = MalleableCommit.from_existing(self.repo,
-                                               self._resolve_commit(ref).id)
-
-        LintOperation(self, commit).run()
-
     def create_release(self, ref):
         commit = MalleableCommit.from_existing(self.repo,
                                                self._resolve_commit(ref).id)

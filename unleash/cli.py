@@ -59,15 +59,6 @@ def release(unleash, ref, **kwargs):
 
 
 @cli.command()
-@click.option('--ref', '-r', default='HEAD',
-              help='Branch/Tag/Commit to lint.')
-@click.pass_obj
-def lint(unleash, ref, **kwargs):
-    unleash.opts.update(kwargs)
-    unleash.lint(ref)
-
-
-@cli.command()
 @click.option('--no-sign', '-S', 'sign', default=True, is_flag=True,
               help='Turn off code signing.')
 @click.option('--tag', '-t',
