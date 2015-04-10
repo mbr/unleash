@@ -1,8 +1,3 @@
-from logbook import Logger
-
-log = Logger('unleash')
-
-
 class Issue(object):
     # severities are:
     #   warning  - can be ignored and still release
@@ -30,13 +25,7 @@ class Issue(object):
 class IssueCollector(object):
     def __init__(self):
         self.issues = []
-        self.log = log
 
     def report(self, *args, **kwargs):
         issue = Issue(*args, **kwargs)
         self.issues.append(issue)
-
-        getattr(log, issue.severity)(issue.format_issue())
-
-        if issue.suggestion:
-            log.info(issue.format_suggestion())

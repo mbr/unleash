@@ -16,69 +16,6 @@ from .issues import IssueCollector
 log = Logger('unleash')
 
 
-class CommitBasedOperation(IssueCollector):
-    def __init__(self, app, commit):
-        super(CommitBasedOperation, self).__init__()
-        self.app = app
-        self.commit = commit
-
-
-class LintOperation(CommitBasedOperation):
-    def run(self):
-        # now we run all linting plugins
-        self.app.plugins.notify('lint', ctx=self)
-        log.info('Finished lint. Issues: {}'.format(len(self.issues)))
-
-
-class CreateReleaseOperation(CommitBasedOperation):
-    def run(self):
-        opts = self.app.opts
-        commit = self.commit
-
-        # update author and such
-        if opts['author'] is None:
-            commit.author = '{} <{}>'.format(
-                self.app.gitconfig.get('user', 'name'),
-                self.app.gitconfig.get('user', 'email'),
-            )
-            commit.commiter = commit.author
-        else:
-            commit.author = opts['author']
-            commit.committer = opts['author']
-
-        self.info = {}
-
-        self.app.plugins.notify('collect_release_info', ctx=self)
-
-        log.debug('Collected information:\n{}'.format(pformat(self.info)))
-
-        self.app.plugins.notify('prepare_release', ctx=self)
-
-        log.info(unicode(self.commit))
-
-        if opts['inspect']:
-            # check out to temporary directory
-            with TempDir() as inspect_dir:
-                commit.export_to(inspect_dir)
-
-                log.info('You are being dropped into an interactive shell '
-                         'inside a temporary checkout of the release commit. '
-                         'No changes you make will persist. Exit the shell to '
-                         'abort the release process.\n\n'
-                         'Use "exit 2" to continue the release.')
-
-                status = self.app.run_user_shell(cwd=inspect_dir)
-
-            if status != 2:
-                log.error('Aborting release, got exit code {} from shell.'.
-                          format(status))
-                return
-
-        # lint the resulting commmit
-        lint = LintOperation(self.app, commit)
-        lint.run()
-
-
 class Unleash(object):
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
         if self.opts['interactive']:
@@ -123,7 +60,59 @@ class Unleash(object):
         commit = MalleableCommit.from_existing(self.repo,
                                                self._resolve_commit(ref).id)
 
-        CreateReleaseOperation(self, commit).run()
+        opts = self.opts
+
+        # update author and such
+        if opts['author'] is None:
+            commit.author = '{} <{}>'.format(
+                self.gitconfig.get('user', 'name'),
+                self.gitconfig.get('user', 'email'),
+            )
+            commit.commiter = commit.author
+        else:
+            commit.author = opts['author']
+            commit.committer = opts['author']
+
+        # create context
+        context = {
+            'commit': commit,
+            'opts': opts,
+            'info': {},
+            'issues': IssueCollector(),
+            'log': log,
+        }
+
+        log.info('Collecting release information.')
+        self.plugins.notify('collect_info', ctx=context)
+
+        log.debug('Collected information:\n{}'.format(
+            pformat(context['info']))
+        )
+
+        log.info('Preparing release.')
+        self.plugins.notify('prepare_release', ctx=context)
+
+        if opts['inspect']:
+            log.info(unicode(self.commit))
+            # check out to temporary directory
+            with TempDir() as inspect_dir:
+                commit.export_to(inspect_dir)
+
+                log.info('You are being dropped into an interactive shell '
+                         'inside a temporary checkout of the release commit. '
+                         'No changes you make will persist. Exit the shell to '
+                         'abort the release process.\n\n'
+                         'Use "exit 2" to continue the release.')
+
+                status = self.app.run_user_shell(cwd=inspect_dir)
+
+            if status != 2:
+                log.error('Aborting release, got exit code {} from shell.'.
+                          format(status))
+                return
+
+        log.info('Linting release.')
+        self.plugins.notify('lint_release', ctx=context)
 
     def run_user_shell(self, **kwargs):
         return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
