@@ -10,7 +10,7 @@ from logbook import Logger
 from tempdir import TempDir
 
 from .exc import ReleaseError, InvocationError
-from .git import prepare_commit, resolve, export_tree, MalleableCommit
+from .git import resolve, export_tree, MalleableCommit
 from .issues import IssueCollector
 
 log = Logger('unleash')
@@ -139,30 +139,6 @@ class Unleash(object):
 
 
     def ____():
-        # determine version:
-        # release version defaults to canonical version
-        if release_version is None:
-            release_version = version.copy()
-            release_version.drop_extras()
-        else:
-            release_version = NormalizedVersion(release_version)
-
-        # dev version defaults to incremented release version
-        if dev_version is None:
-            dev_version = release_version.copy()
-            dev_version.increment()
-            dev_version.set_dev_version()
-        else:
-            dev_version = NormalizedVersion(dev_version)
-        log.debug('Release: {}, Dev: {}, setup.py: {}'.format(
-            release_version, dev_version, version,
-        ))
-
-        # ask user for confirmation, last chance to check if versions are
-        # correct
-        self._confirm_prompt('Release version {}, increase dev version to {}?'
-                             .format(release_version, dev_version))
-
         # user confirmed, prepare the commits
         msg_release = self.release_msg.format(release_version, footer)
         msg_dev = self.dev_msg.format(dev_version, release_version, footer)

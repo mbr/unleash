@@ -30,6 +30,15 @@ def find_assign(data, varname):
     return ASSIGN_RE.search(data).group(2)
 
 
+def replace_assign(data, varname, new_value):
+    ASSIGN_RE = re.compile(BASE_ASSIGN_PATTERN.format(varname))
+
+    def repl(m):
+        return m.group(1) + new_value + m.group(3)
+
+    return ASSIGN_RE.sub(repl, data)
+
+
 def setup(cli):
     cli.commands['release'].params.append(Option(
         ['--dev-version', '-d'],
@@ -43,28 +52,41 @@ def setup(cli):
              'auto-detected from setup.py.'
     ))
 
+    cli.commands['release'].params.append(Option(
+        ['--package-dir', '-p'], multiple=True,
+        help='Directories in which packages can be found (used to update '
+             '__version__ variables. Can be given multiple times.'
+    ))
+
+
+def _get_setup_py(ctx):
+    commit = ctx.commit
+
+    # find setup.py
+    if not commit.path_exists('setup.py'):
+        ctx.report(PLUGIN_NAME, 'No setup.py found', 'error',
+                   suggestion='The version could not determined '
+                              'because no setup.py file was found. '
+                              'Either supply a release version '
+                              'explicity or make sure setup.py exists '
+                              'in the root of the repository.')
+        return None
+
+    return commit.get_path_data('setup.py')
+
 
 def collect_release_info(ctx):
-    commit = ctx.commit
     opts = ctx.app.opts
 
     release_version = opts.get('release_version')
     dev_version = opts.get('dev_version')
 
+    setup_py = _get_setup_py(ctx)
+    if not setup_py:
+        return None
+
     try:
         if release_version is None:
-            # find setup.py
-            if not commit.path_exists('setup.py'):
-                ctx.report(PLUGIN_NAME, 'No setup.py found', 'error',
-                           suggestion='The version could not determined '
-                                      'because no setup.py file was found. '
-                                      'Either supply a release version '
-                                      'explicity or make sure setup.py exists '
-                                      'in the root of the repository.')
-                return
-
-            setup_py = commit.get_path_data('setup.py')
-
             # try extracting version info
             try:
                 release_version = find_assign(setup_py, 'version')
@@ -101,5 +123,68 @@ def collect_release_info(ctx):
                               'number and try again.'.format(e))
         return
 
+    # get package name
+    try:
+        pkg_name = find_assign(setup_py, 'name')
+    except ValueError as e:
+        ctx.report(PLUGIN_NAME, e, 'error',
+                   suggestion='Could not extract package name from setup.py. '
+                              'Please make sure there is only a single name= '
+                              'expression in that file.')
+
+    ctx.info['pkg_name'] = pkg_name
     ctx.info['release_version'] = str(release_version)
     ctx.info['dev_version'] = str(dev_version)
+
+
+def prepare_release(ctx):
+    # update commit message
+    commit = ctx.commit
+    opts = ctx.app.opts
+
+    commit.message = u'Release version {}'.format(ctx.info['release_version'])
+
+    # Steps
+    # 1. Replace commit message
+    # 2. Replace version in setup.py
+    # 3. Replace version in PKGNAME/__init__.py
+
+    setup_py = _get_setup_py(ctx)
+
+    # use provided package dirs or auto-detected one from setup.py
+    pkg_paths = set(opts['package_dir'])
+    if not pkg_paths:
+        pkg_paths = set([ctx.info['pkg_name'],
+                         ctx.info['pkg_name'].replace('-', '_')])
+
+    ctx.log.debug('Package paths: {}'.format(pkg_paths))
+    init_files = [path + '/__init__.py' for path in pkg_paths]
+
+    init_files = filter(commit.path_exists, init_files)
+
+    if not init_files:
+        ctx.report(PLUGIN_NAME, 'No __init__.py files found for packages.',
+                   suggestion='While looking for package __init__.py files to '
+                              'update version information in, none were '
+                              'found. This most often happens if your '
+                              'package contains only modules or is not named '
+                              'after its primary Python package.')
+        return
+
+    ctx.log.debug('Init files: {}'.format(init_files))
+
+    # update setup.py
+    commit.set_path_data('setup.py', replace_assign(
+        setup_py,
+        'version',
+        ctx.info['release_version'],
+    ))
+
+    # update PKGNAME/__init__.py files
+    for fn in init_files:
+        # replace version info
+        commit.set_path_data(fn, replace_assign(
+            commit.get_path_data(fn),
+            '__version__',
+            ctx.info['release_version'],
+        ))

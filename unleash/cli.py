@@ -48,8 +48,6 @@ def cli(unleash, root, debug, batch, **kwargs):
 @click.option('--inspect', '-i', is_flag=True, default=False,
               help='After processing, check out the commit interactively in a '
                    'shell.')
-@click.option('--package-name', '-p',
-              help='The name of the package to be packaged.')
 @click.option('--lint/--no-lint', '-l/-T', 'run_tests', default=True,
               help='Lint before releasing (default: enabled).')
 @click.option('--ref', '-r', default='HEAD',
