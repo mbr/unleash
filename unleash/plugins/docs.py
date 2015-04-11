@@ -30,11 +30,14 @@ def collect_info(ctx):
         ctx['info']['doc_dir'] = None
 
 
-def prepare_release(ctx):
-    info = ctx['info']
-    if not info['doc_dir']:
-        ctx['log'].debug('No doc dir, not building docs.')
+def _check_version_dir_present(ctx):
+    if not ctx['info']['doc_dir']:
+        ctx['log'].debug('No doc dir, not building pr updating docs.')
         return
+
+
+def _set_doc_version(ctx, version, version_short):
+    info = ctx['info']
 
     conf_fn = info['doc_dir'].rstrip('/') + '/conf.py'
     conf = require_file(
@@ -43,7 +46,23 @@ def prepare_release(ctx):
         'that if there is a Sphinx-based documentation in that directory.'
         .format(ctx['info']['doc_dir']))
 
-    conf = replace_assign(conf, 'version', info['release_version_short'])
-    conf = replace_assign(conf, 'release', info['release_version'])
+    conf = replace_assign(conf, 'version', version_short)
+    conf = replace_assign(conf, 'release', version)
 
     ctx['commit'].set_path_data(conf_fn, conf)
+
+
+def prepare_release(ctx):
+    info = ctx['info']
+    _check_version_dir_present(ctx)
+    _set_doc_version(ctx,
+                     info['release_version'],
+                     info['release_version_short'])
+
+
+def prepare_dev(ctx):
+    info = ctx['info']
+    _check_version_dir_present(ctx)
+    _set_doc_version(ctx,
+                     info['dev_version'],
+                     info['dev_version_short'])
