@@ -38,6 +38,13 @@ def setup(cli):
     ))
 
 
+def _shorten_version(version):
+    v = Version(str(version))
+    v.parts = [v.parts[0]] + [None] * 4
+
+    return v
+
+
 def collect_info(ctx):
     opts = ctx['opts']
 
@@ -62,8 +69,7 @@ def collect_info(ctx):
                             'from setup.py'.format(release_version))
 
         # parse release version string
-        release_version = Version(release_version)
-        release_version.parts = [release_version.parts[0]] + [None] * 4
+        release_version = _shorten_version(release_version)
 
         if dev_version is None:
             # if we're given no dev version, we try to create one by
@@ -94,6 +100,11 @@ def collect_info(ctx):
     ctx['info']['pkg_name'] = pkg_name
     ctx['info']['release_version'] = str(release_version)
     ctx['info']['dev_version'] = str(dev_version)
+
+    # create the short versions
+    ctx['info']['release_version_short'] = str(_shorten_version
+                                               (release_version))
+    ctx['info']['dev_version_short'] = str(_shorten_version(dev_version))
 
 
 def prepare_release(ctx):
