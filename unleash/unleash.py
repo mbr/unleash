@@ -155,26 +155,6 @@ class Unleash(object):
 
 
     def ____():
-        # user confirmed, prepare the commits
-        msg_release = self.release_msg.format(release_version, footer)
-        msg_dev = self.dev_msg.format(dev_version, release_version, footer)
-
-
-        # prepare the commits. this alters the trees without checking them
-        # out
-        release_commit, release_tree, release_objs = prepare_commit(
-            repo, commit.id, release_version, args.author, msg_release,
-            args.package_name,
-        )
-        dev_commit, dev_tree, dev_objs = prepare_commit(
-            repo, commit.id, dev_version, args.author, msg_dev, args.package_name,
-        )
-
-        objects_to_add = []
-        objects_to_add.extend(release_objs)
-        objects_to_add.extend(dev_objs)
-
-    def not_implemented():
         for obj in objects_to_add:
             log.debug('Stored %r' % obj)
             repo.object_store.add_object(obj)
