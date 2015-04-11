@@ -117,12 +117,12 @@ class Unleash(object):
                              'the shell to abort the release process.\n\n'
                              'Use "exit 2" to continue the release.')
 
-                    status = self.app.run_user_shell(cwd=inspect_dir)
+                    status = self.run_user_shell(cwd=inspect_dir)
 
                 if status != 2:
-                    log.error('Aborting release, got exit code {} from shell.'.
-                              format(status))
-                    return
+                    raise InvocationError(
+                        'Aborting release, got exit code {} from shell.'.
+                        format(status))
 
             log.info('Linting release')
             rcontext['issues'] = rissues.channel('lint')
