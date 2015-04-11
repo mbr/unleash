@@ -83,12 +83,13 @@ class Unleash(object):
 
             rcommit = self._create_child_commit(ref)
             rissues = IssueCollector(log=log)
+            info = {}
 
             # create context
             rcontext = {
                 'commit': rcommit,
                 'opts': opts,
-                'info': {},
+                'info': info,
                 'issues': rissues.channel('collect'),
                 'log': log,
             }
@@ -137,7 +138,7 @@ class Unleash(object):
                 'commit': dcommit,
                 'release_commit': rcommit,
                 'opts': opts,
-                'info': {},
+                'info': info,
                 'issues': dissues.channel('collect'),
                 'log': log,
             }

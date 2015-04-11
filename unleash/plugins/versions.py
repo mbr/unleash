@@ -45,6 +45,34 @@ def _shorten_version(version):
     return v
 
 
+def _set_commit_version(ctx, version):
+    commit = ctx['commit']
+    info = ctx['info']
+
+    # Steps
+    # 1. Replace commit message
+    # 2. Replace version in setup.py
+    # 3. Replace version in PKGNAME/__init__.py
+
+    setup_py = require_setup_py(ctx)
+
+    # update setup.py
+    commit.set_path_data('setup.py', replace_assign(
+        setup_py,
+        'version',
+        info['release_version'],
+    ))
+
+    # update PKGNAME/__init__.py files
+    for fn in info['init_files']:
+        # replace version info
+        commit.set_path_data(fn, replace_assign(
+            commit.get_path_data(fn),
+            '__version__',
+            info['release_version'],
+        ))
+
+
 def collect_info(ctx):
     opts = ctx['opts']
     info = ctx['info']
@@ -136,25 +164,14 @@ def prepare_release(ctx):
     # update commit message
     commit.message = u'Release version {}'.format(info['release_version'])
 
-    # Steps
-    # 1. Replace commit message
-    # 2. Replace version in setup.py
-    # 3. Replace version in PKGNAME/__init__.py
+    _set_commit_version(ctx, info['release_version'])
 
-    setup_py = require_setup_py(ctx)
 
-    # update setup.py
-    commit.set_path_data('setup.py', replace_assign(
-        setup_py,
-        'version',
-        info['release_version'],
-    ))
+def prepare_dev(ctx):
+    commit = ctx['commit']
+    info = ctx['info']
 
-    # update PKGNAME/__init__.py files
-    for fn in info['init_files']:
-        # replace version info
-        commit.set_path_data(fn, replace_assign(
-            commit.get_path_data(fn),
-            '__version__',
-            info['release_version'],
-        ))
+    commit.message = (u'Start developing version {} (after release of {})'
+                      .format(info['dev_version'], info['release_version']))
+
+    _set_commit_version(ctx, info['dev_version'])
