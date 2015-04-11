@@ -57,27 +57,27 @@ class Unleash(object):
         self.gitconfig = self.repo.get_config_stack()
 
     def create_release(self, ref):
-        commit = MalleableCommit.from_existing(self.repo,
-                                               self._resolve_commit(ref).id)
+        rcommit = MalleableCommit.from_existing(self.repo,
+                                                self._resolve_commit(ref).id)
 
         opts = self.opts
 
         # update author and such
         if opts['author'] is None:
-            commit.author = '{} <{}>'.format(
+            rcommit.author = '{} <{}>'.format(
                 self.gitconfig.get('user', 'name'),
                 self.gitconfig.get('user', 'email'),
             )
-            commit.commiter = commit.author
+            rcommit.commiter = rcommit.author
         else:
-            commit.author = opts['author']
-            commit.committer = opts['author']
+            rcommit.author = opts['author']
+            rcommit.committer = opts['author']
 
         issues = IssueCollector(log=log)
 
         # create context
         context = {
-            'commit': commit,
+            'commit': rcommit,
             'opts': opts,
             'info': {},
             'issues': issues.channel('collect'),
@@ -97,10 +97,10 @@ class Unleash(object):
             self.plugins.notify('prepare_release', ctx=context)
 
             if opts['inspect']:
-                log.info(unicode(self.commit))
+                log.info(unicode(rcommit))
                 # check out to temporary directory
                 with TempDir() as inspect_dir:
-                    commit.export_to(inspect_dir)
+                    rcommit.export_to(inspect_dir)
 
                     log.info('You are being dropped into an interactive shell '
                              'inside a temporary checkout of the release '
