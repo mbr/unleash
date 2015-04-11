@@ -2,22 +2,20 @@ from click import Option
 from versio.version import Version
 
 from .utils_assign import find_assign, replace_assign
+from .utils_tree import require_file
 
 PLUGIN_NAME = 'versions'
 
 
-def _get_setup_py(ctx):
-    commit = ctx['commit']
-
-    # find setup.py
-    if not commit.path_exists('setup.py'):
-        ctx['issues'].error(
-            'No setup.py found',
-            'The version could not determined because no setup.py file was '
-            'found. Either supply a release version explicity or make sure '
-            'setup.py exists in the root of the repository.')
-
-    return commit.get_path_data('setup.py')
+def require_setup_py(ctx):
+    return require_file(
+        ctx,
+        'setup.py',
+        'No setup.py found',
+        'The version could not determined because no setup.py file was found. '
+        'Either supply a release version explicity or make sure setup.py '
+        'exists in the root of the repository.'
+    )
 
 
 def setup(cli):
@@ -46,7 +44,7 @@ def collect_info(ctx):
     release_version = opts.get('release_version')
     dev_version = opts.get('dev_version')
 
-    setup_py = _get_setup_py(ctx)
+    setup_py = require_setup_py(ctx)
 
     try:
         if release_version is None:
@@ -111,7 +109,7 @@ def prepare_release(ctx):
     # 2. Replace version in setup.py
     # 3. Replace version in PKGNAME/__init__.py
 
-    setup_py = _get_setup_py(ctx)
+    setup_py = require_setup_py(ctx)
 
     # use provided package dirs or auto-detected one from setup.py
     pkg_paths = set(opts['package_dir'])
