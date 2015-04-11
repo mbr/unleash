@@ -47,6 +47,8 @@ def _shorten_version(version):
 
 def collect_info(ctx):
     opts = ctx['opts']
+    info = ctx['info']
+    commit = ctx['commit']
 
     release_version = opts.get('release_version')
     dev_version = opts.get('dev_version')
@@ -97,30 +99,13 @@ def collect_info(ctx):
             'Could not extract package name from setup.py. Please make sure '
             'there is only a single name= expression in that file.')
 
-    ctx['info']['pkg_name'] = pkg_name
-    ctx['info']['release_version'] = str(release_version)
-    ctx['info']['dev_version'] = str(dev_version)
+    info['pkg_name'] = pkg_name
+    info['release_version'] = str(release_version)
+    info['dev_version'] = str(dev_version)
 
     # create the short versions
-    ctx['info']['release_version_short'] = str(_shorten_version
-                                               (release_version))
-    ctx['info']['dev_version_short'] = str(_shorten_version(dev_version))
-
-
-def prepare_release(ctx):
-    commit = ctx['commit']
-    opts = ctx['opts']
-    info = ctx['info']
-
-    # update commit message
-    commit.message = u'Release version {}'.format(info['release_version'])
-
-    # Steps
-    # 1. Replace commit message
-    # 2. Replace version in setup.py
-    # 3. Replace version in PKGNAME/__init__.py
-
-    setup_py = require_setup_py(ctx)
+    info['release_version_short'] = str(_shorten_version(release_version))
+    info['dev_version_short'] = str(_shorten_version(dev_version))
 
     # use provided package dirs or auto-detected one from setup.py
     pkg_paths = set(opts['package_dir'])
@@ -141,7 +126,22 @@ def prepare_release(ctx):
             'package contains only modules or is not named after its primary '
             'Python package.')
 
-    ctx['log'].debug('Init files: {}'.format(init_files))
+    info['init_files'] = init_files
+
+
+def prepare_release(ctx):
+    commit = ctx['commit']
+    info = ctx['info']
+
+    # update commit message
+    commit.message = u'Release version {}'.format(info['release_version'])
+
+    # Steps
+    # 1. Replace commit message
+    # 2. Replace version in setup.py
+    # 3. Replace version in PKGNAME/__init__.py
+
+    setup_py = require_setup_py(ctx)
 
     # update setup.py
     commit.set_path_data('setup.py', replace_assign(
@@ -151,7 +151,7 @@ def prepare_release(ctx):
     ))
 
     # update PKGNAME/__init__.py files
-    for fn in init_files:
+    for fn in info['init_files']:
         # replace version info
         commit.set_path_data(fn, replace_assign(
             commit.get_path_data(fn),
