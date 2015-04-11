@@ -69,14 +69,6 @@ class Unleash(object):
     def __init__(self, plugins=[]):
         self.plugins = plugins
 
-    def set_global_opts(self, root, debug=False, opts=None):
-        self.opts = opts or {}
-        self.root = root
-        self.debug = debug
-
-        self.repo = Repo(root)
-        self.gitconfig = self.repo.get_config_stack()
-
     def create_release(self, ref):
         try:
             opts = self.opts
@@ -153,6 +145,14 @@ class Unleash(object):
 
     def run_user_shell(self, **kwargs):
         return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
+
+    def set_global_opts(self, root, debug=False, opts=None):
+        self.opts = opts or {}
+        self.root = root
+        self.debug = debug
+
+        self.repo = Repo(root)
+        self.gitconfig = self.repo.get_config_stack()
 
 
     def ____():
