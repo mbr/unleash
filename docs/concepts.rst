@@ -42,4 +42,4 @@ After creating a *release commit*, the commit it was based on is "incremented"
 as well. This usually just entails incrementing the version number from
 something like ``0.6.dev1`` to ``0.7.dev1``.
 
-This process only has a single step, which is called the **dev_prep** step.
+This process only has a single step, which is called the **dev_prepare** step.

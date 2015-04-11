@@ -45,6 +45,27 @@ class Unleash(object):
                         tmpdir)
             yield tmpdir
 
+    def _create_child_commit(self, parent_ref):
+        opts = self.opts
+
+        # prepare the release commit
+        commit = MalleableCommit.from_existing(
+            self.repo, self._resolve_commit(parent_ref).id
+        )
+
+        # update author and such
+        if opts['author'] is None:
+            commit.author = '{} <{}>'.format(
+                self.gitconfig.get('user', 'name'),
+                self.gitconfig.get('user', 'email'),
+            )
+            commit.commiter = commit.author
+        else:
+            commit.author = opts['author']
+            commit.committer = opts['author']
+
+        return commit
+
     def __init__(self, plugins=[]):
         self.plugins = plugins
 
@@ -57,44 +78,32 @@ class Unleash(object):
         self.gitconfig = self.repo.get_config_stack()
 
     def create_release(self, ref):
-        rcommit = MalleableCommit.from_existing(self.repo,
-                                                self._resolve_commit(ref).id)
-
-        opts = self.opts
-
-        # update author and such
-        if opts['author'] is None:
-            rcommit.author = '{} <{}>'.format(
-                self.gitconfig.get('user', 'name'),
-                self.gitconfig.get('user', 'email'),
-            )
-            rcommit.commiter = rcommit.author
-        else:
-            rcommit.author = opts['author']
-            rcommit.committer = opts['author']
-
-        issues = IssueCollector(log=log)
-
-        # create context
-        context = {
-            'commit': rcommit,
-            'opts': opts,
-            'info': {},
-            'issues': issues.channel('collect'),
-            'log': log,
-        }
-
         try:
-            log.info('Collecting release information.')
-            self.plugins.notify('collect_info', ctx=context)
+            opts = self.opts
+
+            rcommit = self._create_child_commit(ref)
+            rissues = IssueCollector(log=log)
+
+            # create context
+            rcontext = {
+                'commit': rcommit,
+                'opts': opts,
+                'info': {},
+                'issues': rissues.channel('collect'),
+                'log': log,
+            }
+
+            # perform necessary release steps
+            log.info('Collecting release information')
+            self.plugins.notify('collect_info', ctx=rcontext)
 
             log.debug('Collected information:\n{}'.format(
-                pformat(context['info']))
+                pformat(rcontext['info']))
             )
 
-            log.info('Preparing release.')
-            context['issues'] = issues.channel('prepare_release')
-            self.plugins.notify('prepare_release', ctx=context)
+            log.info('Preparing release')
+            rcontext['issues'] = rissues.channel('prepare_release')
+            self.plugins.notify('prepare_release', ctx=rcontext)
 
             if opts['inspect']:
                 log.info(unicode(rcommit))
@@ -115,9 +124,27 @@ class Unleash(object):
                               format(status))
                     return
 
-            log.info('Linting release.')
-            context['issues'] = issues.channel('lint')
-            self.plugins.notify('lint_release', ctx=context)
+            log.info('Linting release')
+            rcontext['issues'] = rissues.channel('lint')
+            self.plugins.notify('lint_release', ctx=rcontext)
+
+            # we're done with the release, now create the dev commit
+            dcommit = self._create_child_commit(ref)
+            dissues = IssueCollector(log=log)
+
+            # update context
+            dcontext = {
+                'commit': dcommit,
+                'release_commit': rcommit,
+                'opts': opts,
+                'info': {},
+                'issues': dissues.channel('collect'),
+                'log': log,
+            }
+
+            # creating development commit
+            log.info('Creating development release')
+            self.plugins.notify('prepare_dev', ctx=dcontext)
         except PluginError:
             # just abort, error has been logged already
             log.debug('Exiting due to PluginError')
