@@ -108,11 +108,11 @@ def collect_info(ctx):
 
 
 def prepare_release(ctx):
-    # update commit message
     commit = ctx['commit']
     opts = ctx['opts']
     info = ctx['info']
 
+    # update commit message
     commit.message = u'Release version {}'.format(info['release_version'])
 
     # Steps
