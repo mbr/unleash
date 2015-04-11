@@ -12,6 +12,8 @@ Unleash is tied to the concept of a distributed version control system, in
 practice this is strictly git_ right now. Development happens as usual, until a
 developer decides to cut a release.
 
+.. _git: https://git-scm.com
+
 
 Cutting a release
 -----------------
@@ -31,4 +33,13 @@ The release process happens in distinct steps:
 3. Afterwards, a **lint** is performed on the *release commit*.
 4. Finally the newly prepared and linted committ gets tagged.
 
-.. _git: https://git-scm.com
+
+
+Create a development commit
+---------------------------
+
+After creating a *release commit*, the commit it was based on is "incremented"
+as well. This usually just entails incrementing the version number from
+something like ``0.6.dev1`` to ``0.7.dev1``.
+
+This process only has a single step, which is called the **dev_prep** step.
