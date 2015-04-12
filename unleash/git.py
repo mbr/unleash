@@ -43,7 +43,16 @@ def export_tree(lookup, tree, path):
                              (mode, name))
 
 
-def resolve(repo, lookup, ish):
+def one_or_many(f):
+    def _(self, *args, **kwargs):
+        if len(self.candidates) == 1:
+            return f(self, self.candidates[0], *args, **kwargs)
+        if len(self.candidates) > 1:
+            return [f(self, c) for c in self.candidates]
+    return _
+
+
+class ResolvedRef(object):
     """Resolves a commit-ish/tree-ish to an object.
 
     Correct way is described at `here <http://stackoverflow.com/questions/
@@ -51,18 +60,69 @@ def resolve(repo, lookup, ish):
 
     Resolution in this function is much simpler, no ``@{}~:/^ `` are supported.
     """
-    candidates = []
+    def __init__(self, repo, ref, lookup=None):
+        self.repo = repo
+        self.ref = ref
+        self.lookup = lookup or repo.object_store.__getitem__
 
-    def consider(name):
-        if name in repo:
-            candidates.append(repo[name])
+        full_names = [
+            'refs/tags/{}'.format(ref),
+            'refs/heads/{}'.format(ref),
+            'refs/remotes/{}'.format(ref),
+            'refs/{}'.format(ref),
+        ]
 
-    consider(ish)
-    consider('refs/tags/{}'.format(ish))
-    consider('refs/heads/{}'.format(ish))
-    consider('refs/{}'.format(ish))
+        candidates = []
 
-    return candidates
+        if ref in self.repo.object_store:
+            candidates.append((ref, 'object'))
+
+        for name in full_names:
+
+            if name in self.repo.refs:
+                candidates.append((name, 'ref'))
+
+        self.candidates = candidates
+
+    @property
+    def is_definite(self):
+        return len(self.candidates) < 2
+
+    @property
+    def is_ref(self):
+        if not self.candidates:
+            return False
+
+        return all(c[1] == 'ref' for c in self.candidates)
+
+    @property
+    def is_object(self):
+        if not self.candidates:
+            return False
+
+        return all(c[1] == 'object' for c in self.candidates)
+
+    @property
+    @one_or_many
+    def id(self, (ref, type)):
+        if type == 'object':
+            return ref
+
+        return self.repo.refs[ref]
+
+    @property
+    @one_or_many
+    def full_name(self, candidate):
+        return candidate[0]
+
+    @property
+    @one_or_many
+    def type(self, candidate):
+        return candidate[1]
+
+    @one_or_many
+    def get_object(self, candidate):
+        return self.repo[candidate[0]]
 
 
 class MalleableCommit(object):

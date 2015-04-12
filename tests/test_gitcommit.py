@@ -4,7 +4,7 @@ import subprocess
 from dulwich.repo import Repo
 import pytest
 from tempdir import TempDir
-from unleash.git import MalleableCommit, export_tree, resolve
+from unleash.git import MalleableCommit, export_tree, ResolvedRef
 
 from pytest_fixbinary import binary
 
@@ -35,6 +35,12 @@ def dummy_repo(git_binary, git_repo):
     subprocess.check_call([git_binary, 'commit', '-m', 'test commit'],
                           cwd=git_repo)
 
+    fn2 = fn + '2'
+    open(fn2, 'w').write('second file')
+    subprocess.check_call([git_binary, 'add', fn2], cwd=git_repo)
+    subprocess.check_call([git_binary, 'commit', '-m', 'second test commit'],
+                          cwd=git_repo)
+
     return git_repo
 
 
@@ -57,8 +63,8 @@ def test_commit_reading(repo):
     c = MalleableCommit.from_existing(repo, master)
 
     assert c.encoding == 'UTF-8'
-    assert c.parent_ids == []
-    assert c.message == u'test commit\n'
+    assert len(c.parent_ids) == 1
+    assert c.message == u'second test commit\n'
 
     assert c.get_path_data('foo.txt') == 'bar'
     assert c.get_path_mode('foo.txt') == 0100644
@@ -169,14 +175,6 @@ def test_export_to_uncommitted(repo):
         assert 'NEW' == open(os.path.join(outdir, 'xyz.txt')).read()
 
 
-def test_my_resolve(repo):
-    master = repo.refs['refs/heads/master']
-    c = repo[master]
-
-    assert [c] == resolve(repo, repo.__getitem__, 'master')
-    assert [] == resolve(repo, repo.__getitem__, 'meh')
-
-
 def test_path_exists(repo):
     master = repo.refs['refs/heads/master']
 
@@ -193,3 +191,59 @@ def test_to_commit(repo):
 
     raw_commit = c.to_commit()
     assert raw_commit.tree == repo[master].tree
+
+
+def test_ref_resolution_single_ref(repo):
+    rr = ResolvedRef(repo, 'master')
+    assert rr.is_definite
+    assert rr.full_name == 'refs/heads/master'
+    assert rr.type == 'ref'
+    assert rr.is_ref
+    assert not rr.is_object
+    assert rr.get_object() == repo['refs/heads/master']
+    assert rr.id == repo.refs['refs/heads/master']
+
+
+def test_ref_resolution_nonexistant(repo):
+    rr = ResolvedRef(repo, 'doesnotexist')
+    assert rr.is_definite
+    assert rr.full_name is None
+    assert rr.type is None
+    assert not rr.is_ref
+    assert not rr.is_object
+    assert rr.get_object() is None
+    assert rr.id is None
+
+
+def test_ref_resolution_object(repo):
+    master = repo.refs['refs/heads/master']
+
+    assert len(master) == 40
+
+    rr = ResolvedRef(repo, master)
+    assert rr.is_definite
+    assert rr.full_name == master
+    assert rr.type == 'object'
+    assert not rr.is_ref
+    assert rr.is_object
+    assert rr.get_object() == repo['refs/heads/master']
+    assert rr.id == master
+
+
+def test_ref_resolution_multiple_ref(repo):
+    cur = repo[repo.refs['refs/heads/master']]
+    master_tag = cur.parents[0]
+    master_branch = cur.id
+
+    # we add a tag "master"
+    repo.refs['refs/tags/master'] = master_tag
+
+    rr = ResolvedRef(repo, 'master')
+    assert not rr.is_definite
+    assert rr.full_name == ['refs/tags/master', 'refs/heads/master']
+    assert rr.type == ['ref', 'ref']
+    assert rr.is_ref
+    assert not rr.is_object
+    assert rr.get_object() == [repo['refs/tags/master'],
+                               repo['refs/heads/master']]
+    assert rr.id == [master_tag, master_branch]
