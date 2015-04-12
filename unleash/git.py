@@ -43,6 +43,16 @@ def export_tree(lookup, tree, path):
                              (mode, name))
 
 
+def get_local_timezone(now=None):
+    if now is None:
+        now = int(time.time())
+
+    # calculate local timezone. must be done each time, due to DST
+    _tz_offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
+
+    return _tz_offset.days * 24 * 60 * 60 + _tz_offset.seconds
+
+
 def one_or_many(f):
     def _(self, *args, **kwargs):
         if len(self.candidates) == 1:
@@ -136,10 +146,7 @@ class MalleableCommit(object):
                  commit_timezone=None, author_timezone=None,
                  encoding='UTF-8'):
         now = int(time.time())
-
-        # calculate local timezone. must be done each time, due to DST
-        _tz_offset = tzlocal().utcoffset(datetime.utcfromtimestamp(now))
-        LOCAL_TIMEZONE = _tz_offset.days * 24 * 60 * 60 + _tz_offset.seconds
+        local_timezone = get_local_timezone(now)
 
         self.repo = repo
         self.encoding = encoding
@@ -155,9 +162,9 @@ class MalleableCommit(object):
 
         # the default timezone is the local timezone
         self.commit_timezone = (commit_timezone if commit_timezone is not None
-                                else LOCAL_TIMEZONE)
+                                else local_timezone)
         self.author_timezone = (author_timezone if author_timezone is not None
-                                else LOCAL_TIMEZONE)
+                                else local_timezone)
 
         self.tree = tree
 
