@@ -50,7 +50,7 @@ def cli(unleash, root, debug, batch, **kwargs):
                    'shell.')
 @click.option('--lint/--no-lint', '-l/-T', 'run_tests', default=True,
               help='Lint before releasing (default: enabled).')
-@click.option('--ref', '-r', default='HEAD',
+@click.option('--ref', '-r', default='master',
               help='Branch/Tag/Commit to release.')
 @click.pass_obj
 def release(unleash, ref, **kwargs):
