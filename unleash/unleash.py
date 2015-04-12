@@ -67,6 +67,8 @@ class Unleash(object):
         commit.commit_time = now
         commit.commit_timezone = ltz
 
+        commit.parent_ids = [parent.id]
+
         return commit
 
     def __init__(self, plugins=[]):
