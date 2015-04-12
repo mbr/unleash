@@ -66,6 +66,7 @@ class ResolvedRef(object):
         self.lookup = lookup or repo.object_store.__getitem__
 
         full_names = [
+            ref,
             'refs/tags/{}'.format(ref),
             'refs/heads/{}'.format(ref),
             'refs/remotes/{}'.format(ref),
@@ -109,6 +110,10 @@ class ResolvedRef(object):
             return ref
 
         return self.repo.refs[ref]
+
+    @property
+    def found(self):
+        return bool(self.candidates)
 
     @property
     @one_or_many

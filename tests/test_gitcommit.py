@@ -202,6 +202,7 @@ def test_ref_resolution_single_ref(repo):
     assert not rr.is_object
     assert rr.get_object() == repo['refs/heads/master']
     assert rr.id == repo.refs['refs/heads/master']
+    assert rr.found
 
 
 def test_ref_resolution_nonexistant(repo):
@@ -213,6 +214,7 @@ def test_ref_resolution_nonexistant(repo):
     assert not rr.is_object
     assert rr.get_object() is None
     assert rr.id is None
+    assert not rr.found
 
 
 def test_ref_resolution_object(repo):
@@ -228,6 +230,7 @@ def test_ref_resolution_object(repo):
     assert rr.is_object
     assert rr.get_object() == repo['refs/heads/master']
     assert rr.id == master
+    assert rr.found
 
 
 def test_ref_resolution_multiple_ref(repo):
@@ -247,3 +250,10 @@ def test_ref_resolution_multiple_ref(repo):
     assert rr.get_object() == [repo['refs/tags/master'],
                                repo['refs/heads/master']]
     assert rr.id == [master_tag, master_branch]
+    assert rr.found
+
+
+def test_ref_resoltion_finds_head(repo):
+    rr = ResolvedRef(repo, 'HEAD')
+
+    assert rr.found
