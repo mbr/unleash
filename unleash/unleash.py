@@ -138,6 +138,25 @@ class Unleash(object):
             # creating development commit
             log.info('Creating development release')
             self.plugins.notify('prepare_dev', ctx=dcontext)
+
+            # we've got both commits, now tag the release
+            self._confirm_prompt(
+                'Advance dev to {} and release {}?'
+                .format(info['dev_version'], info['release_version'])
+            )
+
+            release_tag = 'refs/tags/{}'.format(info['release_version'])
+
+            if release_tag in self.repo.refs:
+                self._confirm_prompt(
+                    'Repository already contains {}, really overwrite the tag?'
+                    .format(release_tag),
+                )
+
+            release_hash = rcommit.save()
+
+            log.info('{}: {}'.format(release_tag, release_hash))
+            self.repo.refs[release_tag] = release_hash
         except PluginError:
             # just abort, error has been logged already
             log.debug('Exiting due to PluginError')
