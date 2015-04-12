@@ -129,7 +129,7 @@ def test_commit_persists_changes(dummy_repo, repo):
     c = MalleableCommit.from_existing(repo, master)
     c.set_path_data('xyz.txt', 'NEW', mode=0100755)
     tree_id = c.tree.id
-    c.save()
+    assert c.save()
 
     r = Repo(dummy_repo)
     t = r[tree_id]

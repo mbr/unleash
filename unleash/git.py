@@ -249,6 +249,8 @@ class MalleableCommit(object):
         for id in ids_to_add:
             self.repo.object_store.add_object(self.new_objects[id])
 
+        return commit.id
+
     def _lookup(self, path):
         # construct a lookup chain that
         return self.tree.lookup_path(self._lookup_chain.__getitem__, path)
