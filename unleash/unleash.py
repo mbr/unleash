@@ -168,13 +168,21 @@ class Unleash(object):
             # save the dev commit
             dev_hash = dcommit.save()
 
-            if not self._resolve_commit('HEAD') == self._resolve_commit(ref):
-                log.warning('HEAD does not point at the same commit as '
-                            'base commit. Not changing HEAD.')
+            # if our release commit formed from a branch, we set that branch
+            # to our new dev commit
+            assert base_ref.is_definite and base_ref.found
+            if not base_ref.is_ref or\
+                    not base_ref.full_name.startswith('refs/heads'):
+                log.warning('Release commit does not originate from a branch; '
+                            'dev commit will not be reachable.')
+                log.info('Dev commit: {}'.format(dev_hash))
             else:
-                log.info('HEAD: {}'.format(dev_hash))
-                # we change the HEAD commit
-                self.repo.refs['HEAD'] = dev_hash
+                self.repo.refs[base_ref.full_name] = dev_hash
+
+                # change the branch to point at our new dev commit
+                log.info('{}: {}'.format(
+                    base_ref.full_name, dev_hash
+                ))
         except PluginError:
             # just abort, error has been logged already
             log.debug('Exiting due to PluginError')
