@@ -75,6 +75,10 @@ class Unleash(object):
     def create_release(self, ref):
         try:
             opts = self.opts
+            base_ref = ResolvedRef(self.repo, ref)
+            log.debug(
+                'Base ref: {} ({})'.format(base_ref.full_name, base_ref.id)
+            )
 
             rcommit = self._create_child_commit(ref)
             rissues = IssueCollector(log=log)
