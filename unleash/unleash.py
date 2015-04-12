@@ -2,15 +2,15 @@ from contextlib import contextmanager
 from pprint import pformat
 import os
 import subprocess
+import time
 
 import click
 from dulwich.repo import Repo
-from dulwich.objects import Commit
 from logbook import Logger
 from tempdir import TempDir
 
 from .exc import ReleaseError, InvocationError, PluginError
-from .git import resolve, export_tree, MalleableCommit
+from .git import export_tree, MalleableCommit, ResolvedRef, get_local_timezone
 from .issues import IssueCollector
 
 log = Logger('unleash')
@@ -20,22 +20,6 @@ class Unleash(object):
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
         if self.opts['interactive']:
             click.confirm(text, default=default, abort=abort, **kwargs)
-
-    def _resolve_commit(self, ref):
-        objs = resolve(self.repo, self.repo.__getitem__, ref.encode('ascii'))
-        log.debug('Resolved {!r} to {!r}'.format(ref, objs))
-
-        commits = filter(lambda c: isinstance(c, Commit), objs)
-
-        if not commits:
-            raise InvocationError('Could not resolve "{}"'.format(ref))
-
-        if len(commits) > 1:
-            raise InvocationError('Ambiguous commit-ish "{}": {}'.format(
-                ref, objs,
-            ))
-
-        return commits[0]
 
     @contextmanager
     def _checked_out(self, tree):
@@ -48,9 +32,19 @@ class Unleash(object):
     def _create_child_commit(self, parent_ref):
         opts = self.opts
 
+        parent = ResolvedRef(self.repo, parent_ref)
+
+        if not parent.is_definite:
+            raise InvocationError('{} is ambiguous: {}'.format(
+                parent.ref, parent.full_name
+            ))
+
+        if not parent.found:
+            raise InvocationError('Could not resolve "{}"'.format(parent.ref))
+
         # prepare the release commit
         commit = MalleableCommit.from_existing(
-            self.repo, self._resolve_commit(parent_ref).id
+            self.repo, parent.id
         )
 
         # update author and such
@@ -63,6 +57,15 @@ class Unleash(object):
         else:
             commit.author = opts['author']
             commit.committer = opts['author']
+
+        now = int(time.time())
+        ltz = get_local_timezone(now)
+
+        commit.author_time = now
+        commit.author_timezone = ltz
+
+        commit.commit_time = now
+        commit.commit_timezone = ltz
 
         return commit
 
