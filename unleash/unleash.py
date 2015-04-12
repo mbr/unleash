@@ -157,6 +157,17 @@ class Unleash(object):
 
             log.info('{}: {}'.format(release_tag, release_hash))
             self.repo.refs[release_tag] = release_hash
+
+            # save the dev commit
+            dev_hash = dcommit.save()
+
+            if not self._resolve_commit('HEAD') == self._resolve_commit(ref):
+                log.warning('HEAD does not point at the same commit as '
+                            'base commit. Not changing HEAD.')
+            else:
+                log.info('HEAD: {}'.format(dev_hash))
+                # we change the HEAD commit
+                self.repo.refs['HEAD'] = dev_hash
         except PluginError:
             # just abort, error has been logged already
             log.debug('Exiting due to PluginError')
