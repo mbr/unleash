@@ -19,6 +19,7 @@ log = logbook.Logger('cli')
               type=click.Path(exists=True, file_okay=False, dir_okay=True,
               resolve_path=True),
               help='Path to git repository to use.')
+@click.option('--dry-run', '-n', is_flag=True)
 @click.version_option()
 @click.pass_obj
 def cli(unleash, root, debug, batch, **kwargs):

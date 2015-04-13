@@ -150,6 +150,10 @@ class Unleash(object):
             log.info('Creating development release')
             self.plugins.notify('prepare_dev', ctx=dcontext)
 
+            if opts['dry_run']:
+                log.info('Not saving created commits. Dry-run successful.')
+                return
+
             # we've got both commits, now tag the release
             self._confirm_prompt(
                 'Advance dev to {} and release {}?'
