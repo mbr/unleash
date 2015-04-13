@@ -109,6 +109,10 @@ class Unleash(object):
             rcontext['issues'] = rissues.channel('prepare_release')
             self.plugins.notify('prepare_release', ctx=rcontext)
 
+            log.info('Linting release')
+            rcontext['issues'] = rissues.channel('lint')
+            self.plugins.notify('lint_release', ctx=rcontext)
+
             if opts['inspect']:
                 log.info(unicode(rcommit))
                 # check out to temporary directory
@@ -127,10 +131,6 @@ class Unleash(object):
                     raise InvocationError(
                         'Aborting release, got exit code {} from shell.'.
                         format(status))
-
-            log.info('Linting release')
-            rcontext['issues'] = rissues.channel('lint')
-            self.plugins.notify('lint_release', ctx=rcontext)
 
             # we're done with the release, now create the dev commit
             dcommit = self._create_child_commit(ref)
