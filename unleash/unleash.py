@@ -82,6 +82,7 @@ class Unleash(object):
                 'Base ref: {} ({})'.format(base_ref.full_name, base_ref.id)
             )
 
+            orig_tree = base_ref.get_object().tree
             rcommit = self._create_child_commit(ref)
             rissues = IssueCollector(log=log)
             info = {}
@@ -185,9 +186,44 @@ class Unleash(object):
                 log.info('{}: {}'.format(
                     base_ref.full_name, dev_hash
                 ))
+
+                self._update_working_copy(base_ref, orig_tree)
+
+                # finally, if HEAD points towards out branch
+                # FIXME: 4. if the index did not change, look for unstaged
+                #           changes
+                #        5. if there are none of those as well, update index
+                #           and working copy
+                #        6. find out what partial changes can be made
         except PluginError:
             # just abort, error has been logged already
             log.debug('Exiting due to PluginError')
+            return
+
+    def _update_working_copy(self, base_ref, orig_tree):
+        head_ref = ResolvedRef(self.repo, 'HEAD')
+        if not head_ref.is_definite or not head_ref.is_symbolic\
+                or not head_ref.target == base_ref.full_name:
+            log.info('HEAD is not a symbolic ref to {}, leaving your '
+                     'working copy untouched.')
+            return
+
+        if not self.repo.has_index():
+            log.info('Repository has no index, not updating working copy.')
+            return
+
+        index = self.repo.open_index()
+
+        changes = list(index.changes_from_tree(
+            self.repo.object_store,
+            orig_tree,
+        ))
+
+        if changes:
+            log.warning('There are staged changes in your index. Will not '
+                        'update working copy.\n\n'
+                        'You will need to manually change your HEAD to '
+                        '{}.'.format(base_ref.id))
             return
 
     def run_user_shell(self, **kwargs):
