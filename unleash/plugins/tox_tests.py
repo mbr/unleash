@@ -34,8 +34,7 @@ def lint_release(ctx):
 
     ctx['log'].debug('Installing tox in a new virtualenv')
     try:
-        with VirtualEnv.temporary() as ve,\
-                in_tmpexport(ctx['commit']) as tmpdir:
+        with VirtualEnv.temporary() as ve, in_tmpexport(ctx['commit']):
             ve.pip_install('tox')
             ctx['log'].debug('Running tests using tox')
             ve.check_output(['tox'])
