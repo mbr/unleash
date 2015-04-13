@@ -29,7 +29,7 @@ def export_tree(lookup, tree, path):
             raise ValueError('Does not support submodules')
         elif S_ISDIR(mode):
             os.mkdir(dest)
-            os.chmod(dest, 0755)
+            os.chmod(dest, 0o0755)
             export_tree(lookup, obj, dest)
         elif S_ISLNK(mode):
             os.symlink(obj.data, dest)
@@ -240,13 +240,13 @@ class MalleableCommit(object):
     def __unicode__(self):
         return self.to_commit().as_pretty_string().decode(self.encoding)
 
-    def set_path_data(self, path, data, mode=0100644):
+    def set_path_data(self, path, data, mode=0o0100644):
         blob = Blob.from_string(data)
         self.new_objects[blob.id] = blob
 
         return self.set_path_id(path, blob.id, mode)
 
-    def set_path_id(self, path, id, mode=0100644):
+    def set_path_id(self, path, id, mode=0o0100644):
         # we use regular "/" split here, as dulwich uses the same method
         parts = path.split('/')
 

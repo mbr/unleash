@@ -67,17 +67,17 @@ def test_commit_reading(repo):
     assert c.message == u'second test commit\n'
 
     assert c.get_path_data('foo.txt') == 'bar'
-    assert c.get_path_mode('foo.txt') == 0100644
+    assert c.get_path_mode('foo.txt') == 0o0100644
 
     assert c.get_path_data('sub/dir/dest.txt') == 'baz'
-    assert c.get_path_mode('sub/dir/dest.txt') == 0100644
+    assert c.get_path_mode('sub/dir/dest.txt') == 0o0100644
 
     with pytest.raises(KeyError):
         assert c.get_path_data('does.not.exist')
 
     # directories return None and have just the dir flag set
     assert c.get_path_data('sub') is None
-    assert c.get_path_mode('sub') == 0040000
+    assert c.get_path_mode('sub') == 0o0040000
 
 
 def test_commit_id_setting(repo):
@@ -124,16 +124,16 @@ def test_commit_changes_mode(repo):
     master = repo.refs['refs/heads/master']
 
     c = MalleableCommit.from_existing(repo, master)
-    c.set_path_data('xyz.txt', 'NEW', mode=0100755)
+    c.set_path_data('xyz.txt', 'NEW', mode=0o0100755)
     assert c.get_path_data('xyz.txt') == 'NEW'
-    assert c.get_path_mode('xyz.txt') == 0100755
+    assert c.get_path_mode('xyz.txt') == 0o0100755
 
 
 def test_commit_persists_changes(dummy_repo, repo):
     master = repo.refs['refs/heads/master']
 
     c = MalleableCommit.from_existing(repo, master)
-    c.set_path_data('xyz.txt', 'NEW', mode=0100755)
+    c.set_path_data('xyz.txt', 'NEW', mode=0o0100755)
     tree_id = c.tree.id
     assert c.save()
 
@@ -162,7 +162,7 @@ def test_export_to_uncommitted(repo):
 
     c = MalleableCommit.from_existing(repo, master)
 
-    c.set_path_data('xyz.txt', 'NEW', mode=0100755)
+    c.set_path_data('xyz.txt', 'NEW', mode=0o0100755)
     c.set_path_data('foo.txt', 'overwritten')
 
     with TempDir() as outdir:
