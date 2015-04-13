@@ -6,6 +6,7 @@ import time
 
 import click
 from dulwich.repo import Repo
+from dulwich.index import build_index_from_tree
 from logbook import Logger
 from tempdir import TempDir
 
@@ -225,6 +226,19 @@ class Unleash(object):
                         'You will need to manually change your HEAD to '
                         '{}.'.format(base_ref.id))
             return
+
+        # reset the index to the new dev commit
+        self._confirm_prompt(
+            'Do you want to reset your index to the new dev commit and check '
+            'it out? Unsaved changes to your working copy may be overwritten!'
+        )
+        log.info('Resetting index and checking out dev commit.')
+        build_index_from_tree(
+            self.repo.path,
+            self.repo.index_path(),
+            self.repo.object_store,
+            base_ref.get_object().tree,
+        )
 
     def run_user_shell(self, **kwargs):
         return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
