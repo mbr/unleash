@@ -60,7 +60,7 @@ def _set_commit_version(ctx, version):
     commit.set_path_data('setup.py', replace_assign(
         setup_py,
         'version',
-        info['release_version'],
+        version,
     ))
 
     # update PKGNAME/__init__.py files
@@ -69,7 +69,7 @@ def _set_commit_version(ctx, version):
         commit.set_path_data(fn, replace_assign(
             commit.get_path_data(fn),
             '__version__',
-            info['release_version'],
+            version,
         ))
 
 
