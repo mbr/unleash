@@ -70,6 +70,9 @@ class ResolvedRef(object):
 
     Resolution in this function is much simpler, no ``@{}~:/^ `` are supported.
     """
+
+    SYM_PREFIX = 'ref: '
+
     def __init__(self, repo, ref, lookup=None):
         self.repo = repo
         self.ref = ref
@@ -86,12 +89,18 @@ class ResolvedRef(object):
         candidates = []
 
         if ref in self.repo.object_store:
-            candidates.append((ref, 'object'))
+            candidates.append((ref, 'object', None))
 
         for name in full_names:
-
             if name in self.repo.refs:
-                candidates.append((name, 'ref'))
+                # store symbolic ref targets
+                target = self.repo.refs.read_ref(name)
+                if not target.startswith(self.SYM_PREFIX):
+                    target = None
+                else:
+                    target = target[len(self.SYM_PREFIX):]
+
+                candidates.append((name, 'ref', target))
 
         self.candidates = candidates
 
@@ -107,6 +116,15 @@ class ResolvedRef(object):
         return all(c[1] == 'ref' for c in self.candidates)
 
     @property
+    def is_symbolic(self):
+        return len(self.candidates) == 1 and self.target is not None
+
+    @property
+    @one_or_many
+    def target(self, candidate):
+        return candidate[2]
+
+    @property
     def is_object(self):
         if not self.candidates:
             return False
@@ -115,11 +133,11 @@ class ResolvedRef(object):
 
     @property
     @one_or_many
-    def id(self, (ref, type)):
-        if type == 'object':
-            return ref
+    def id(self, candidate):
+        if candidate[1] == 'object':
+            return candidate[0]
 
-        return self.repo.refs[ref]
+        return self.repo.refs[candidate[0]]
 
     @property
     def found(self):
