@@ -189,13 +189,6 @@ class Unleash(object):
                 ))
 
                 self._update_working_copy(base_ref, orig_tree)
-
-                # finally, if HEAD points towards out branch
-                # FIXME: 4. if the index did not change, look for unstaged
-                #           changes
-                #        5. if there are none of those as well, update index
-                #           and working copy
-                #        6. find out what partial changes can be made
         except PluginError:
             # just abort, error has been logged already
             log.debug('Exiting due to PluginError')
