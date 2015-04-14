@@ -53,7 +53,7 @@ class VirtualEnv(object):
             yield cls.create(tmpdir)
 
     def __str__(self):
-        return '{}({!r})'.format(self._class__.__name__, self.path)
+        return '{}({!r})'.format(self.__class__.__name__, self.path)
 
 
 def checked_output(cmd, *args, **kwargs):
