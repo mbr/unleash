@@ -16,6 +16,11 @@ git_binary = binary('git')
 def git_repo(git_binary):
     with TempDir() as tmpdir:
         subprocess.check_call(['git', 'init', tmpdir])
+        # set user email and such
+        subprocess.check_call(['git', 'config', 'user.name', 'pytest'],
+                              cwd=tmpdir)
+        subprocess.check_call(['git', 'config', 'user.email', 'py@test.inv'],
+                              cwd=tmpdir)
         yield tmpdir
 
 
