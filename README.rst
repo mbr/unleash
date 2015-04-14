@@ -51,3 +51,12 @@ This will:
   * Upload the documentation, if present, to pythonhosted.org (PyPI).
   * Push the associated git tag to origin.
   * Clean up the temporary directory.
+
+
+
+Python 3 support
+****************
+
+unleash relies heavily on dulwich and therefore only supports Python 2. This
+restriction only applies to running unleash, it handles release of packages
+written in Python 3 just fine.
