@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 
 from click import Option
@@ -37,74 +38,73 @@ def collect_info(ctx):
             'built for this release. To fix this, create the folder containing '
             'Sphinx-documentation.')
         ctx['info']['doc_dir'] = None
+    else:
+        ctx['info']['doc_conf'] = doc_dir.rstrip('/') + '/conf.py'
 
 
-def _check_version_dir_present(ctx):
+def _get_doc_conf(ctx):
     if not ctx['info']['doc_dir']:
         ctx['log'].debug('No doc dir, not building or updating docs.')
-        return False
-    return True
+        return
+
+    return require_file(
+        ctx, ctx['info']['doc_conf'], 'Could not find doc''s conf.py',
+        'Could not find conf.py in your documentation path ({}). Please check '
+        'that if there is a Sphinx-based documentation in that directory.'
+        .format(ctx['info']['doc_dir'])
+    )
 
 
 def _set_doc_version(ctx, version, version_short):
     info = ctx['info']
-
-    conf_fn = info['doc_dir'].rstrip('/') + '/conf.py'
-    conf = require_file(
-        ctx, conf_fn, 'Could not find doc''s conf.py',
-        'Could not find conf.py in your documentation path ({}). Please check '
-        'that if there is a Sphinx-based documentation in that directory.'
-        .format(ctx['info']['doc_dir']))
+    conf = _get_doc_conf(ctx)
 
     conf = replace_assign(conf, 'version', version_short)
     conf = replace_assign(conf, 'release', version)
 
-    ctx['commit'].set_path_data(conf_fn, conf)
+    ctx['commit'].set_path_data(info['doc_conf'], conf)
 
 
 def prepare_release(ctx):
-    if not _check_version_dir_present(ctx):
-        return
-
     info = ctx['info']
     _set_doc_version(ctx,
                      info['release_version'],
                      info['release_version_short'])
 
 
-def lint_release(ctx):
-    if not _check_version_dir_present(ctx):
-        return
+IMPORT_THEME_RE = re.compile(r'import\s+(sphinx\w*theme\w*)\b')
 
+
+def lint_release(ctx):
     info = ctx['info']
     theme_pkgs = ctx['opts']['sphinx_styles']
 
-    if not theme_pkgs:
-        pass  # FIXME: auto-detect necessary doc packages
+    conf = _get_doc_conf(ctx)
 
     # create doc virtualenv
     with VirtualEnv.temporary() as ve:
-        ve.pip_install('sphinx', *theme_pkgs)
+        try:
+            if not theme_pkgs:
+                theme_pkgs = IMPORT_THEME_RE.findall(conf)
+            ctx['log'].debug('Will try to install the following theme '
+                             'packages: {}'.format(theme_pkgs))
 
-        # ensure documentation builds cleanly
-        with in_tmpexport(ctx['commit']) as tmpdir:
-            try:
+            ve.pip_install('sphinx', *theme_pkgs)
+
+            # ensure documentation builds cleanly
+            with in_tmpexport(ctx['commit']) as tmpdir:
                 ve.check_output(
                     ['make', 'html'],
                     cwd=os.path.join(tmpdir, *info['doc_dir'].split('/'))
                 )
-            except subprocess.CalledProcessError as e:
-                ctx['issues'].error(
-                    'Error building documentation:\n{}'.format(e)
-                )
+        except subprocess.CalledProcessError as e:
+            ctx['issues'].error(
+                'Error building documentation:\n{}'.format(e)
+            )
 
 
 def prepare_dev(ctx):
-    if not _check_version_dir_present(ctx):
-        return
-
     info = ctx['info']
-    _check_version_dir_present(ctx)
     _set_doc_version(ctx,
                      info['dev_version'],
                      info['dev_version_short'])
