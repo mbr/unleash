@@ -1,6 +1,10 @@
+import os
+import subprocess
+
 from click import Option
 
-from .utils_tree import require_file
+from unleash.util import VirtualEnv
+from .utils_tree import require_file, in_tmpexport
 from .utils_assign import replace_assign
 
 PLUGIN_NAME = 'docs'
@@ -11,6 +15,11 @@ def setup(cli):
     cli.params.append(Option(
         ['--doc-dir', '-D'], default='docs',
         help='Default directory in which to look for docs.',
+    ))
+    cli.params.append(Option(
+        ['--sphinx-styles'], multiple=True,
+        help='Names of extra packages containing sphinx styles to install '
+             'when building docs (default: auto-detect from conf.py).'
     ))
 
 
@@ -32,8 +41,9 @@ def collect_info(ctx):
 
 def _check_version_dir_present(ctx):
     if not ctx['info']['doc_dir']:
-        ctx['log'].debug('No doc dir, not building pr updating docs.')
-        return
+        ctx['log'].debug('No doc dir, not building or updating docs.')
+        return False
+    return True
 
 
 def _set_doc_version(ctx, version, version_short):
@@ -53,14 +63,46 @@ def _set_doc_version(ctx, version, version_short):
 
 
 def prepare_release(ctx):
+    if not _check_version_dir_present(ctx):
+        return
+
     info = ctx['info']
-    _check_version_dir_present(ctx)
     _set_doc_version(ctx,
                      info['release_version'],
                      info['release_version_short'])
 
 
+def lint_release(ctx):
+    if not _check_version_dir_present(ctx):
+        return
+
+    info = ctx['info']
+    theme_pkgs = ctx['opts']['sphinx_styles']
+
+    if not theme_pkgs:
+        pass  # FIXME: auto-detect necessary doc packages
+
+    # create doc virtualenv
+    with VirtualEnv.temporary() as ve:
+        ve.pip_install('sphinx', *theme_pkgs)
+
+        # ensure documentation builds cleanly
+        with in_tmpexport(ctx['commit']) as tmpdir:
+            try:
+                subprocess.check_output(
+                    ['make', 'html'],
+                    cwd=os.path.join(tmpdir, *info['doc_dir'].split('/'))
+                )
+            except subprocess.CalledProcessError as e:
+                ctx['issues'].error(
+                    'Error building documentation:\n{}'.format(e)
+                )
+
+
 def prepare_dev(ctx):
+    if not _check_version_dir_present(ctx):
+        return
+
     info = ctx['info']
     _check_version_dir_present(ctx)
     _set_doc_version(ctx,
