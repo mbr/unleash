@@ -58,6 +58,8 @@ def _get_doc_conf(ctx):
 def _set_doc_version(ctx, version, version_short):
     info = ctx['info']
     conf = _get_doc_conf(ctx)
+    if not conf:
+        return
 
     conf = replace_assign(conf, 'version', version_short)
     conf = replace_assign(conf, 'release', version)
@@ -80,6 +82,8 @@ def lint_release(ctx):
     theme_pkgs = ctx['opts']['sphinx_styles']
 
     conf = _get_doc_conf(ctx)
+    if not conf:
+        return
 
     # create doc virtualenv
     with VirtualEnv.temporary() as ve:
