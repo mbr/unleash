@@ -61,6 +61,7 @@ def _set_doc_version(ctx, version, version_short):
     if not conf:
         return
 
+    ctx['log'].info('Updating documentation version (now {}).'.format(version))
     conf = replace_assign(conf, 'version', version_short)
     conf = replace_assign(conf, 'release', version)
 
@@ -84,6 +85,8 @@ def lint_release(ctx):
     conf = _get_doc_conf(ctx)
     if not conf:
         return
+
+    ctx['log'].info('Checking documentation builds cleanly.')
 
     # create doc virtualenv
     with VirtualEnv.temporary() as ve:

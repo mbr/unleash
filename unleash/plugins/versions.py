@@ -55,6 +55,8 @@ def _set_commit_version(ctx, version):
     # 3. Replace version in PKGNAME/__init__.py
 
     setup_py = require_setup_py(ctx)
+    ctx['log'].info('Updating setup.py and package version ({}).'
+                    .format(version))
 
     # update setup.py
     commit.set_path_data('setup.py', replace_assign(
@@ -95,8 +97,8 @@ def collect_info(ctx):
                     'setup.py. Please make sure there is only a single '
                     'version= assignment in that file.')
 
-            ctx['log'].info('Release version automatically determined as {} '
-                            'from setup.py'.format(release_version))
+            ctx['log'].debug('Release version automatically determined as {} '
+                             'from setup.py'.format(release_version))
 
         # parse release version string
         release_version = _shorten_version(release_version)
