@@ -98,20 +98,24 @@ class Unleash(object):
             }
 
             # perform necessary release steps
-            log.info('Collecting release information')
-            self.plugins.notify('collect_info', ctx=rcontext)
+            def perform_step(signal_name):
+                rcontext['issues'] = rissues.channel(signal_name)
 
-            log.debug('Collected information:\n{}'.format(
+                log.debug('begin: {}'.format(signal_name))
+                begin = time.time()
+                self.plugins.notify(signal_name, ctx=rcontext)
+                duration = time.time() - begin
+                log.debug('end: {}, took {:.4f}s'.format(signal_name,
+                                                         duration))
+
+            perform_step('collect_info')
+            log.debug('info: {}'.format(
                 pformat(rcontext['info']))
             )
 
-            log.info('Preparing release')
-            rcontext['issues'] = rissues.channel('prepare_release')
-            self.plugins.notify('prepare_release', ctx=rcontext)
-
-            log.info('Linting release')
-            rcontext['issues'] = rissues.channel('lint')
-            self.plugins.notify('lint_release', ctx=rcontext)
+            perform_step('prepare_release')
+            perform_step('lint_release')
+            perform_step('lint_release')
 
             if opts['inspect']:
                 log.info(unicode(rcommit))
