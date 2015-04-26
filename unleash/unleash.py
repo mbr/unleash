@@ -115,7 +115,6 @@ class Unleash(object):
 
             perform_step('prepare_release', rcontext)
             perform_step('lint_release', rcontext)
-            perform_step('lint_release', rcontext)
 
             if opts['inspect']:
                 log.info(unicode(rcommit))
