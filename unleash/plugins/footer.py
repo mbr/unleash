@@ -28,7 +28,7 @@ def prepare_release(ctx):
     if not ctx['opts']['footer'] and not ctx['opts']['unleash_committer']:
         return
 
-    ctx['log'].info('Marking release as released by unleash.')
+    ctx['log'].info('Marking release as released by unleash')
 
     if ctx['opts']['footer']:
         ctx['commit'].message += FOOTER_FORMAT.format(unleash_version)

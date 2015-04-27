@@ -32,7 +32,7 @@ def lint_release(ctx):
     if not ctx['info']['tox_tests']:
         return
 
-    ctx['log'].info('Running tox tests.')
+    ctx['log'].info('Running tox tests')
     try:
         ctx['log'].debug('Installing tox in a new virtualenv')
         with VirtualEnv.temporary() as ve, in_tmpexport(ctx['commit']):

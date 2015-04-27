@@ -33,7 +33,7 @@ def collect_info(ctx):
     ctx['info']['doc_dir'] = doc_dir
     if not ctx['commit'].path_exists(doc_dir):
         ctx['issues'].warn(
-            'No documentation folder found.',
+            'No documentation folder found',
             'Your commit does not contain a folder ''docs/''. No docs will be '
             'built for this release. To fix this, create the folder containing '
             'Sphinx-documentation.')
@@ -44,7 +44,7 @@ def collect_info(ctx):
 
 def _get_doc_conf(ctx):
     if not ctx['info']['doc_dir']:
-        ctx['log'].debug('No doc dir, not building or updating docs.')
+        ctx['log'].debug('No doc dir, not building or updating docs')
         return
 
     return require_file(
@@ -61,7 +61,7 @@ def _set_doc_version(ctx, version, version_short):
     if not conf:
         return
 
-    ctx['log'].info('Updating documentation version (now {}).'.format(version))
+    ctx['log'].info('Updating documentation version (now {})'.format(version))
     conf = replace_assign(conf, 'version', version_short)
     conf = replace_assign(conf, 'release', version)
 
@@ -86,7 +86,7 @@ def lint_release(ctx):
     if not conf:
         return
 
-    ctx['log'].info('Checking documentation builds cleanly.')
+    ctx['log'].info('Checking documentation builds cleanly')
 
     # create doc virtualenv
     with VirtualEnv.temporary() as ve:

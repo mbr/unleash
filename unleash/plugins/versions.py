@@ -55,7 +55,7 @@ def _set_commit_version(ctx, version):
     # 3. Replace version in PKGNAME/__init__.py
 
     setup_py = require_setup_py(ctx)
-    ctx['log'].info('Updating setup.py and package version ({}).'
+    ctx['log'].info('Updating setup.py and package version ({})'
                     .format(version))
 
     # update setup.py
