@@ -97,8 +97,10 @@ def collect_info(ctx):
                     'setup.py. Please make sure there is only a single '
                     'version= assignment in that file.')
 
-            ctx['log'].debug('Release version automatically determined as {} '
-                             'from setup.py'.format(release_version))
+            ctx['log'].debug('Release version automatically determined from '
+                             'setup.py')
+        else:
+            ctx['log'].debug('Release version given on commandline.')
 
         # parse release version string
         release_version = _shorten_version(release_version)
