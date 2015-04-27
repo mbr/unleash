@@ -100,6 +100,7 @@ def lint_release(ctx):
 
             # ensure documentation builds cleanly
             with in_tmpexport(ctx['commit']) as tmpdir:
+                ve.pip_install(tmpdir)
                 ve.check_output(
                     ['make', 'html'],
                     cwd=os.path.join(tmpdir, *info['doc_dir'].split('/'))
