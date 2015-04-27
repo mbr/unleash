@@ -15,6 +15,7 @@ log = logbook.Logger('cli')
 @click.option('--batch', '-b', default=False, is_flag=True,
               help='Do not ask for confirmation before committing changes.')
 @click.option('--debug', '-d', is_flag=True)
+@click.option('--quiet', '-q', is_flag=True)
 @click.option('--root', '-r', default='.',
               type=click.Path(exists=True, file_okay=False, dir_okay=True,
               resolve_path=True),
@@ -22,11 +23,13 @@ log = logbook.Logger('cli')
 @click.option('--dry-run', '-n', is_flag=True)
 @click.version_option()
 @click.pass_obj
-def cli(unleash, root, debug, batch, **kwargs):
+def cli(unleash, root, debug, quiet, batch, **kwargs):
     # setup logging
     loglevel = logbook.INFO
     if debug:
         loglevel = logbook.DEBUG
+    if quiet:
+        loglevel = logbook.WARNING
 
     NullHandler().push_application()
     ColorizedStderrHandler(format_string='{record.message}',
