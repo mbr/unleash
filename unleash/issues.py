@@ -52,7 +52,7 @@ class ChannelReporter(object):
 
 
 class IssueCollector(object):
-    def __init__(self, log = None):
+    def __init__(self, log=None):
         self.issues = []
         self.log = log
 
