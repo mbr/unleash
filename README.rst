@@ -1,62 +1,55 @@
-Unleash releases software
-=========================
+Unleash your code
+=================
 
-``unleash`` is a medium-sized commandline utility that tries to ease releasing
-software, specifically Python libraries and programs. It is currently barely
-documented and tailored to my workflow. Use at your own risk.
+``unleash`` handles the boring details of cutting a release and publishing it
+to somewhere. It assists you doing things like updating version numbers, make
+sure the documentation builds, reminding you that you still need to include a
+LICENSE file and other things.
+
+Once a release is made, it gets tagged in your git repository and you can use
+the publish-functionality to push the new tag to github.com and/or upload your
+package to `PyPI <http://pypi.python.org>`_
+
+Unleash always works with commits, not files in your working copy and creates
+temporary checkouts or verifies directly from the commit's tree. This way you
+can be sure it's not working on your machine only, because you forgot to
+check-in that crucial file that's missing from the release commit.
+
 
 Examples
 --------
 
-Creating a new release
-**********************
+.. code-block:: shell
 
-Simply do::
+   $ unleash --dry-run release
+   Updating setup.py and package version (0.6.0)
+   Updating documentation version (now 0.6.0)
+   Marking release as released by unleash
+   Checking documentation builds cleanly
+   Verifying release can generate source distribution
+   Verifying release can install into a virtualenv
+   Running tox tests
+   Updating setup.py and package version (0.6.1.dev1)
+   Updating documentation version (now 0.6.1.dev1)
+   Not saving created commits. Dry-run successful.
 
-    unleash create-release
+Note the ``--dry-run`` option which means that no alterations will be made to
+your repository. Otherwise, unleash will prompt you to confirm to create a new
+tag ``0.6.0`` for the release and will offer to advance your current branch to
+the next commit, in which all version numbers have been increase.
 
-This will:
+.. code-block::
 
-  * Read the version currently in master and calculate the appropriate release
-    version (i.e. 0.3.4.dev1 becomes 0.3.4).
-  * Create a new commit, in which ``setup.py`` and ``packagename/__init__.py``
-    have had their version strings updated to the new version.
-  * Check out the commit in a temporary directory, alongside a clean
-    `virtualenv <http://virtualenv.org>`_.
-  * Check if the documentation, if present, can be built correctly.
-  * Generate an ``sdist`` package from the checked out commit and see if it
-    cleanly installs inside the virtualenv.
-  * Runs unittests inside the virtualenv.
-  * If everything goes well, removes the temporary checkouts/virtualenvs and
-    tags the commit with the new version.
-  * Creates a new commit on master with a version bump for the next release.
+   $> unleash --dry-run publish
 
-Git operations are not done on the working copy, but directly using dulwich,
-avoiding snafu's that plague other forms of scripting releases. The only
-actual call to the git-executable is when pushing a tag.
+To be written.
 
 
-Publish a release
-*****************
+Other features
+--------------
 
-Creating a release can be followed up with something like::
+``unleash`` uses a plugin-based architecture for all of its operations, this
+means it is fairly easy to add custom checks and steps for releases or
+publications if you desire so.
 
-    unleash publish -s code
-
-This will:
-
-  * Check out the latest version tag into a temporary directory.
-  * Build a source package.
-  * Upload and sign it (``python setup.py sdist -s -i code``).
-  * Upload the documentation, if present, to pythonhosted.org (PyPI).
-  * Push the associated git tag to origin.
-  * Clean up the temporary directory.
-
-
-
-Python 3 support
-****************
-
-unleash relies heavily on dulwich and therefore only supports Python 2. This
-restriction only applies to running unleash, it handles release of packages
-written in Python 3 just fine.
+See the documentation at http://pythonhosted.org/unleash for details.
