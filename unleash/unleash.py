@@ -10,7 +10,7 @@ from dulwich.index import build_index_from_tree
 from logbook import Logger
 from tempdir import TempDir
 
-from .exc import ReleaseError, InvocationError, PluginError
+from .exc import InvocationError, PluginError
 from .git import export_tree, MalleableCommit, ResolvedRef, get_local_timezone
 from .issues import IssueCollector
 
