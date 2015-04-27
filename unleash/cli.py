@@ -14,8 +14,8 @@ log = logbook.Logger('cli')
 @click.group()
 @click.option('--batch', '-b', default=False, is_flag=True,
               help='Do not ask for confirmation before committing changes.')
-@click.option('--debug', '-d', is_flag=True)
-@click.option('--quiet', '-q', is_flag=True)
+@click.option('--debug', '-d', 'loglevel', flag_value=logbook.DEBUG)
+@click.option('--quiet', '-q', 'loglevel', flag_value=logbook.WARNING)
 @click.option('--root', '-r', default='.',
               type=click.Path(exists=True, file_okay=False, dir_okay=True,
               resolve_path=True),
@@ -23,13 +23,9 @@ log = logbook.Logger('cli')
 @click.option('--dry-run', '-n', is_flag=True)
 @click.version_option()
 @click.pass_obj
-def cli(unleash, root, debug, quiet, batch, **kwargs):
-    # setup logging
-    loglevel = logbook.INFO
-    if debug:
-        loglevel = logbook.DEBUG
-    if quiet:
-        loglevel = logbook.WARNING
+def cli(unleash, root, loglevel, batch, **kwargs):
+    if loglevel is None:
+        loglevel = logbook.INFO
 
     NullHandler().push_application()
     ColorizedStderrHandler(format_string='{record.message}',
@@ -41,7 +37,7 @@ def cli(unleash, root, debug, quiet, batch, **kwargs):
 
     opts.update(kwargs)
 
-    unleash.set_global_opts(root, debug, opts)
+    unleash.set_global_opts(root, opts)
     log.debug('Plugin order: {}'.format(unleash.plugins.resolve_order()))
 
 

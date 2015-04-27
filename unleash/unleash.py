@@ -242,10 +242,9 @@ class Unleash(object):
     def run_user_shell(self, **kwargs):
         return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
 
-    def set_global_opts(self, root, debug=False, opts=None):
+    def set_global_opts(self, root, opts=None):
         self.opts = opts or {}
         self.root = root
-        self.debug = debug
 
         self.repo = Repo(root)
         self.gitconfig = self.repo.get_config_stack()
