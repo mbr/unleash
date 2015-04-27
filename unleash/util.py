@@ -20,7 +20,7 @@ class VirtualEnv(object):
 
     @property
     def python(self):
-        return os.path.join(self.python, 'bin', 'python')
+        return os.path.join(self.path, 'bin', 'python')
 
     def check_output(self, *args, **kwargs):
         env = {}
