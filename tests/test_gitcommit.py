@@ -15,11 +15,12 @@ git_binary = binary('git')
 @pytest.yield_fixture
 def git_repo(git_binary):
     with TempDir() as tmpdir:
-        subprocess.check_call(['git', 'init', tmpdir])
+        subprocess.check_call([git_binary, 'init', tmpdir])
         # set user email and such
-        subprocess.check_call(['git', 'config', 'user.name', 'pytest'],
+        subprocess.check_call([git_binary, 'config', 'user.name', 'pytest'],
                               cwd=tmpdir)
-        subprocess.check_call(['git', 'config', 'user.email', 'py@test.inv'],
+        subprocess.check_call([git_binary, 'config', 'user.email',
+                               'py@test.inv'],
                               cwd=tmpdir)
         yield tmpdir
 
