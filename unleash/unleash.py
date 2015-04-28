@@ -75,7 +75,7 @@ class Unleash(object):
     def __init__(self, plugins=[]):
         self.plugins = plugins
 
-    def _perform_step(self, signal_name, ctx, issues):
+    def _perform_step(self, ctx, signal_name, issues):
         ctx['issues'] = issues.channel(signal_name)
 
         log.debug('begin: {}'.format(signal_name))
@@ -106,13 +106,13 @@ class Unleash(object):
                 'log': log,
             }
 
-            self._perform_step('collect_info', rcontext, rissues)
+            self._perform_step(rcontext, 'collect_info', rissues)
             log.debug('info: {}'.format(
                 pformat(rcontext['info']))
             )
 
-            self._perform_step('prepare_release', rcontext, rissues)
-            self._perform_step('lint_release', rcontext, rissues)
+            self._perform_step(rcontext, 'prepare_release', rissues)
+            self._perform_step(rcontext, 'lint_release', rissues)
 
             if opts['inspect']:
                 log.info(unicode(rcommit))
@@ -148,7 +148,7 @@ class Unleash(object):
             }
 
             # creating development commit
-            self._perform_step('prepare_dev', dcontext, dissues)
+            self._perform_step(dcontext, 'prepare_dev', dissues)
 
             if opts['dry_run']:
                 log.info('Not saving created commits. Dry-run successful.')
