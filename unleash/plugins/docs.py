@@ -3,6 +3,7 @@ import re
 import subprocess
 
 from click import Option
+from tempdir import TempDir
 
 from unleash.util import VirtualEnv
 from .utils_tree import require_file, in_tmpexport
@@ -21,6 +22,10 @@ def setup(cli):
         ['--sphinx-styles'], multiple=True,
         help='Names of extra packages containing sphinx styles to install '
              'when building docs (default: auto-detect from conf.py).'
+    ))
+    cli.params.append(Option(
+        ['--sphinx-strict/--no-sphinx-strict'], default=True,
+        help='Turn sphinx warnings into errors (default: True).'
     ))
 
 
@@ -89,7 +94,7 @@ def lint_release(ctx):
     ctx['log'].info('Checking documentation builds cleanly')
 
     # create doc virtualenv
-    with VirtualEnv.temporary() as ve:
+    with VirtualEnv.temporary() as ve, TempDir() as docdir:
         try:
             if not theme_pkgs:
                 theme_pkgs = IMPORT_THEME_RE.findall(conf)
@@ -101,10 +106,26 @@ def lint_release(ctx):
             # ensure documentation builds cleanly
             with in_tmpexport(ctx['commit']) as tmpdir:
                 ve.pip_install(tmpdir)
-                ve.check_output(
-                    ['make', 'html'],
-                    cwd=os.path.join(tmpdir, *info['doc_dir'].split('/'))
-                )
+
+                sphinx_args = [
+                    ve.get_binary('sphinx-build'),
+                    '-b', 'html',    # build html
+                    # the following options don't hurt, but should not be
+                    # necessary as we are building in a clean temp dir
+                    '-E',            # don't use saved environment
+                    '-a'             # always write all files
+                ]
+
+                if ctx['opts']['sphinx_strict']:
+                    sphinx_args.extend(['-W', '-n'])
+
+                sphinx_args.extend([
+                    os.path.join(tmpdir, *info['doc_dir'].split('/')),  # src
+                    docdir,  # dest
+                ])
+
+                ctx['log'].debug('Running sphinx: {}'.format(sphinx_args))
+                ve.check_output(sphinx_args)
         except subprocess.CalledProcessError as e:
             ctx['issues'].error(
                 'Error building documentation:\n{}'.format(e)
