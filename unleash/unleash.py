@@ -103,6 +103,7 @@ class Unleash(object):
                 'opts': opts,
                 'info': info,
                 'log': log,
+                'ref': base_ref,
             }
 
             self._perform_step(rcontext, 'collect_info', rissues)
