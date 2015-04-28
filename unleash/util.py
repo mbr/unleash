@@ -16,11 +16,11 @@ class VirtualEnv(object):
 
     @property
     def pip(self):
-        return os.path.join(self.path, 'bin', 'pip')
+        return self.get_binary('pip')
 
     @property
     def python(self):
-        return os.path.join(self.path, 'bin', 'python')
+        return self.get_binary('python')
 
     def check_output(self, *args, **kwargs):
         env = {}
@@ -34,6 +34,9 @@ class VirtualEnv(object):
         kwargs['env'] = env
 
         return subprocess.check_output(*args, **kwargs)
+
+    def get_binary(self, name):
+        return os.path.join(self.path, 'bin', name)
 
     def pip_install(self, *pkgs):
         return self.check_output([
