@@ -46,6 +46,14 @@ def collect_info(ctx):
     else:
         ctx['info']['doc_conf'] = doc_dir.rstrip('/') + '/conf.py'
 
+    conf = _get_doc_conf(ctx)
+
+    if conf:
+        theme_pkgs = ctx['opts']['sphinx_styles']
+        if not theme_pkgs:
+            theme_pkgs = IMPORT_THEME_RE.findall(conf)
+        ctx['info']['sphinx_theme_pkgs'] = theme_pkgs
+
 
 def _get_doc_conf(ctx):
     if not ctx['info']['doc_dir']:
@@ -73,6 +81,15 @@ def _set_doc_version(ctx, version, version_short):
     ctx['commit'].set_path_data(info['doc_conf'], conf)
 
 
+def sphinx_install(ctx, ve):
+    theme_pkgs = ctx['info']['sphinx_theme_pkgs']
+    ctx['log'].debug('Will try to install the following theme packages: {}'
+                     .format(theme_pkgs))
+
+    # install sphinx and required theme packages
+    ve.pip_install('sphinx', *theme_pkgs)
+
+
 def prepare_release(ctx):
     info = ctx['info']
     _set_doc_version(ctx,
@@ -85,7 +102,6 @@ IMPORT_THEME_RE = re.compile(r'import\s+(sphinx\w*theme\w*)\b')
 
 def lint_release(ctx):
     info = ctx['info']
-    theme_pkgs = ctx['opts']['sphinx_styles']
 
     conf = _get_doc_conf(ctx)
     if not conf:
@@ -96,12 +112,7 @@ def lint_release(ctx):
     # create doc virtualenv
     with VirtualEnv.temporary() as ve, TempDir() as docdir:
         try:
-            if not theme_pkgs:
-                theme_pkgs = IMPORT_THEME_RE.findall(conf)
-            ctx['log'].debug('Will try to install the following theme '
-                             'packages: {}'.format(theme_pkgs))
-
-            ve.pip_install('sphinx', *theme_pkgs)
+            sphinx_install(ctx, ve)
 
             # ensure documentation builds cleanly
             with in_tmpexport(ctx['commit']) as tmpdir:
