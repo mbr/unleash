@@ -265,7 +265,7 @@ def test_ref_resolution_multiple_ref(repo):
     assert not rr.is_symbolic
 
 
-def test_ref_resoltion_finds_head(repo):
+def test_ref_resolution_finds_head(repo):
     rr = ResolvedRef(repo, 'HEAD')
 
     assert rr.found
