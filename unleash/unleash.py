@@ -102,7 +102,6 @@ class Unleash(object):
                 'commit': rcommit,
                 'opts': opts,
                 'info': info,
-                'issues': rissues.channel('collect'),
                 'log': log,
             }
 
