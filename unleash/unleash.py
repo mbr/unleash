@@ -75,6 +75,15 @@ class Unleash(object):
     def __init__(self, plugins=[]):
         self.plugins = plugins
 
+    def _perform_step(self, signal_name, ctx, issues):
+        ctx['issues'] = issues.channel(signal_name)
+
+        log.debug('begin: {}'.format(signal_name))
+        begin = time.time()
+        self.plugins.notify(signal_name, ctx=ctx)
+        duration = time.time() - begin
+        log.debug('end: {}, took {:.4f}s'.format(signal_name, duration))
+
     def create_release(self, ref):
         try:
             opts = self.opts
@@ -97,24 +106,13 @@ class Unleash(object):
                 'log': log,
             }
 
-            # perform necessary release steps
-            def perform_step(signal_name, ctx):
-                rcontext['issues'] = rissues.channel(signal_name)
-
-                log.debug('begin: {}'.format(signal_name))
-                begin = time.time()
-                self.plugins.notify(signal_name, ctx=ctx)
-                duration = time.time() - begin
-                log.debug('end: {}, took {:.4f}s'.format(signal_name,
-                                                         duration))
-
-            perform_step('collect_info', rcontext)
+            self._perform_step('collect_info', rcontext, rissues)
             log.debug('info: {}'.format(
                 pformat(rcontext['info']))
             )
 
-            perform_step('prepare_release', rcontext)
-            perform_step('lint_release', rcontext)
+            self._perform_step('prepare_release', rcontext, rissues)
+            self._perform_step('lint_release', rcontext, rissues)
 
             if opts['inspect']:
                 log.info(unicode(rcommit))
@@ -150,7 +148,7 @@ class Unleash(object):
             }
 
             # creating development commit
-            perform_step('prepare_dev', dcontext)
+            self._perform_step('prepare_dev', dcontext, dissues)
 
             if opts['dry_run']:
                 log.info('Not saving created commits. Dry-run successful.')
