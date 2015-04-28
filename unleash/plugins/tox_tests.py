@@ -38,6 +38,6 @@ def lint_release(ctx):
         with VirtualEnv.temporary() as ve, in_tmpexport(ctx['commit']):
             ve.pip_install('tox')
             ctx['log'].debug('Running tests using tox')
-            ve.check_output(['tox'])
+            ve.check_output(ve.get_binary('tox'))
     except subprocess.CalledProcessError as e:
         ctx['issues'].error('tox testing failed:\n{}'.format(e.output))
