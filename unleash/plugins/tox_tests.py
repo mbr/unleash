@@ -15,9 +15,8 @@ def setup(cli):
     ))
 
 
-def collect_info(ctx):
+def lint_release(ctx):
     info = ctx['info']
-
     info['tox_tests'] = ctx['opts']['tests']
 
     if not ctx['commit'].path_exists('tox.ini'):
@@ -27,9 +26,7 @@ def collect_info(ctx):
             'run on the release.')
         info['tox_tests'] = False
 
-
-def lint_release(ctx):
-    if not ctx['info']['tox_tests']:
+    if not info['tox_tests']:
         return
 
     ctx['log'].info('Running tox tests')

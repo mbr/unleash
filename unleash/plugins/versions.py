@@ -31,7 +31,7 @@ def setup(cli):
              'auto-detected from setup.py.'
     ))
 
-    cli.commands['release'].params.append(Option(
+    cli.params.append(Option(
         ['--package-dir', '-p'], multiple=True,
         help='Directories in which packages can be found (used to update '
              '__version__ variables. Can be given multiple times.'
