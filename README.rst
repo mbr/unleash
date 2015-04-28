@@ -38,9 +38,9 @@ your repository. Otherwise, unleash will prompt you to confirm to create a new
 tag ``0.6.0`` for the release and will offer to advance your current branch to
 the next commit, in which all version numbers have been increase.
 
-.. code-block::
+.. code-block:: shell
 
-   $> unleash --dry-run publish
+   $ unleash --dry-run publish
 
 To be written.
 
