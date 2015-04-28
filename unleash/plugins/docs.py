@@ -81,6 +81,29 @@ def _set_doc_version(ctx, version, version_short):
     ctx['commit'].set_path_data(info['doc_conf'], conf)
 
 
+def sphinx_build(ctx, ve, srcdir, outdir):
+    info = ctx['info']
+    sphinx_args = [
+        ve.get_binary('sphinx-build'),
+        '-b', 'html',    # build html
+        # the following options don't hurt, but should not be
+        # necessary as we are building in a clean temp dir
+        '-E',            # don't use saved environment
+        '-a'             # always write all files
+    ]
+
+    if ctx['opts']['sphinx_strict']:
+        sphinx_args.extend(['-W', '-n'])
+
+    sphinx_args.extend([
+        os.path.join(srcdir, *info['doc_dir'].split('/')),  # src
+        outdir,  # dest
+    ])
+
+    ctx['log'].debug('Running sphinx: {}'.format(sphinx_args))
+    ve.check_output(sphinx_args)
+
+
 def sphinx_install(ctx, ve):
     theme_pkgs = ctx['info']['sphinx_theme_pkgs']
     ctx['log'].debug('Will try to install the following theme packages: {}'
@@ -101,8 +124,6 @@ IMPORT_THEME_RE = re.compile(r'import\s+(sphinx\w*theme\w*)\b')
 
 
 def lint_release(ctx):
-    info = ctx['info']
-
     conf = _get_doc_conf(ctx)
     if not conf:
         return
@@ -110,33 +131,16 @@ def lint_release(ctx):
     ctx['log'].info('Checking documentation builds cleanly')
 
     # create doc virtualenv
-    with VirtualEnv.temporary() as ve, TempDir() as docdir:
+    with VirtualEnv.temporary() as ve, TempDir() as outdir:
         try:
             sphinx_install(ctx, ve)
 
             # ensure documentation builds cleanly
-            with in_tmpexport(ctx['commit']) as tmpdir:
-                ve.pip_install(tmpdir)
+            with in_tmpexport(ctx['commit']) as srcdir:
+                ve.pip_install(srcdir)
 
-                sphinx_args = [
-                    ve.get_binary('sphinx-build'),
-                    '-b', 'html',    # build html
-                    # the following options don't hurt, but should not be
-                    # necessary as we are building in a clean temp dir
-                    '-E',            # don't use saved environment
-                    '-a'             # always write all files
-                ]
+                sphinx_build(ctx, ve, srcdir, outdir)
 
-                if ctx['opts']['sphinx_strict']:
-                    sphinx_args.extend(['-W', '-n'])
-
-                sphinx_args.extend([
-                    os.path.join(tmpdir, *info['doc_dir'].split('/')),  # src
-                    docdir,  # dest
-                ])
-
-                ctx['log'].debug('Running sphinx: {}'.format(sphinx_args))
-                ve.check_output(sphinx_args)
         except subprocess.CalledProcessError as e:
             ctx['issues'].error(
                 'Error building documentation:\n{}'.format(e)
