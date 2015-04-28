@@ -47,6 +47,8 @@ def dummy_repo(git_binary, git_repo):
     subprocess.check_call([git_binary, 'commit', '-m', 'second test commit'],
                           cwd=git_repo)
 
+    subprocess.check_call([git_binary, 'tag', 'one_tag'], cwd=git_repo)
+
     return git_repo
 
 
@@ -269,3 +271,16 @@ def test_ref_resoltion_finds_head(repo):
     assert rr.found
     assert rr.is_symbolic
     assert rr.target == 'refs/heads/master'
+
+
+def test_ref_tag_name(repo):
+    rr = ResolvedRef(repo, 'one_tag')
+
+    assert rr.full_name == 'refs/tags/one_tag'
+    assert rr.tag_name == 'one_tag'
+
+
+def test_ref_tag_name_on_non_tag(repo):
+    rr = ResolvedRef(repo, 'master')
+
+    assert rr.tag_name is None

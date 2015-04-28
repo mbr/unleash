@@ -72,6 +72,7 @@ class ResolvedRef(object):
     """
 
     SYM_PREFIX = 'ref: '
+    TAG_PREFIX = 'refs/tags/'
 
     def __init__(self, repo, ref, lookup=None):
         self.repo = repo
@@ -147,6 +148,13 @@ class ResolvedRef(object):
     @one_or_many
     def full_name(self, candidate):
         return candidate[0]
+
+    @property
+    def tag_name(self):
+        fn = self.full_name
+
+        if fn.startswith(self.TAG_PREFIX):
+            return fn[len(self.TAG_PREFIX):]
 
     @property
     @one_or_many
