@@ -236,6 +236,43 @@ class Unleash(object):
             base_ref.get_object().tree,
         )
 
+    def publish(self, ref):
+        if ref is None:
+            tags = sorted(
+                (t for t in self.repo.refs.as_dict().iteritems() if
+                 t[0].startswith('refs/tags')),
+                key=lambda (_, sha): self.repo[sha].commit_time,
+                reverse=True,
+            )
+
+            if not tags:
+                log.error('Could not find a tag to publish.')
+                return
+
+            ref = tags[0][0]
+
+        pref = ResolvedRef(self.repo, ref)
+        pcommit = MalleableCommit.from_existing(self.repo, pref.id)
+        log.debug('Release tag: {}'.format(pcommit))
+
+        pissues = IssueCollector(log=log)
+        pcontext = {
+            'commit': pcommit,
+            'opts': self.opts,
+            'info': {},
+            'log': log,
+            'ref': pref,
+        }
+
+        try:
+            self._perform_step(pcontext, 'collect_info', pissues)
+            log.debug('info: {}'.format(pformat(pcontext['info'])))
+
+            self._perform_step(pcontext, 'publish_release', pissues)
+        except PluginError:
+            log.debug('Exiting due to PluginError')
+            return
+
     def run_user_shell(self, **kwargs):
         return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
 

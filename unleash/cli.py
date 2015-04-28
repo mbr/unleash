@@ -32,7 +32,8 @@ def cli(unleash, root, loglevel, batch, **kwargs):
                            level=loglevel).push_application()
 
     opts = {
-        'interactive': not batch
+        'interactive': not batch,
+        'root': root,
     }
 
     opts.update(kwargs)
@@ -59,13 +60,17 @@ def release(unleash, ref, **kwargs):
 
 
 @cli.command()
-@click.option('--no-sign', '-S', 'sign', default=True, is_flag=True,
-              help='Turn off code signing.')
-@click.option('--tag', '-t',
-              help='Tag to publish. Default is the latest tag created.')
+@click.option('--sign/--no-sign', '-s/-S', default=True,
+              help='Turn code signing on or off.')
+@click.option('--identity', '-i',
+              help='Identity to use when signing.')
+@click.option('--ref', '-r', default=None,
+              help='Branch/Tag/Commit to publish. By default, use newest '
+                   'tag by commit date.')
 @click.pass_obj
-def publish(unleash, **kwargs):
-    unleash.publish(**kwargs)
+def publish(unleash, ref, **kwargs):
+    unleash.opts.update(kwargs)
+    unleash.publish(ref)
 
 
 def main():
