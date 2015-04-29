@@ -3,8 +3,6 @@ import subprocess
 from click import Option
 from shutilwhich import which
 
-from unleash.exc import PluginError
-
 
 PLUGIN_NAME = 'git'
 
