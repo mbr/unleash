@@ -8,7 +8,7 @@ project = u'unleash'
 copyright = u'2015, Marc Brinkmann'
 
 version = '0.6.0'
-release = '0.6.0.dev1'
+release = '0.6.0'
 
 exclude_patterns = ['_build']
 pygments_style = 'sphinx'
