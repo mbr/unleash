@@ -60,10 +60,6 @@ def release(unleash, ref, **kwargs):
 
 
 @cli.command()
-@click.option('--sign/--no-sign', '-s/-S', default=True,
-              help='Turn code signing on or off.')
-@click.option('--identity', '-i',
-              help='Identity to use when signing.')
 @click.option('--ref', '-r', default=None,
               help='Branch/Tag/Commit to publish. By default, use newest '
                    'tag by commit date.')
