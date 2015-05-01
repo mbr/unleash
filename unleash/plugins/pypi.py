@@ -20,6 +20,10 @@ def setup(cli):
         ['--identity', '-i'],
         help='Identity to use when signing.'
     ))
+    cli.commands['publish'].params.append(Option(
+        ['--upload-docs/--no-upload-docs', '-d/-D'], default=True,
+        help='Upload documentation to PyPI.'
+    ))
 
 
 def collect_info(ctx):
@@ -67,6 +71,10 @@ def publish_release(ctx):
                              'using default identity')
             else:
                 log.info('Uploading unsigned source distribution to PyPI')
+
+            if opts['upload_docs']:
+                args.append('upload_docs')
+                log.info('Building and uploading documentation to PyPI')
 
             log.debug('Running {}'.format(args))
             subprocess.check_output(
