@@ -64,9 +64,9 @@ def publish_release(ctx):
                              'using key \'{}\''.format(opts['identity']))
                 else:
                     log.info('Uploading signed source distribution to PyPI '
-                             'using default identity.')
+                             'using default identity')
             else:
-                log.info('Uploading unsigned source distribution to PyPI.')
+                log.info('Uploading unsigned source distribution to PyPI')
 
             log.debug('Running {}'.format(args))
             subprocess.check_output(
