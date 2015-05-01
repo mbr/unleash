@@ -20,14 +20,6 @@ def setup(cli):
         ['--identity', '-i'],
         help='Identity to use when signing.'
     ))
-    cli.commands['publish'].params.append(Option(
-        ['--gpg-binary'], default='gpg',
-        help='Path to git binary to use.',
-    ))
-    cli.commands['publish'].params.append(Option(
-        ['--gpg-homedir'], default=DEFAULT_GPG_HOMEDIR,
-        help='Path to gpg homedir (default: {}).'.format(DEFAULT_GPG_HOMEDIR),
-    ))
 
 
 def collect_info(ctx):
