@@ -5,6 +5,7 @@ import sys
 from click import Option
 from six.moves import shlex_quote
 from .utils_tree import in_tmpexport
+from unleash import log, opts, info, issues, commit
 
 
 PLUGIN_NAME = 'pypi'
@@ -26,26 +27,21 @@ def setup(cli):
     ))
 
 
-def collect_info(ctx):
-    info = ctx['info']
-
+def collect_info():
     py = sys.executable
     if not py:
-        ctx['issues'].error('Could not determine Python executable',
-                            'unleash could not (through sys.executable) '
-                            'determine the path to your Python interpreter. '
-                            'This is required for launching other ')
+        issues.error('Could not determine Python executable',
+                     'unleash could not (through sys.executable) determine the '
+                     'path to your Python interpreter. This is required for '
+                     'launching other programs.')
 
     info['python'] = py
 
 
-def publish_release(ctx):
-    log = ctx['log']
-    opts = ctx['opts']
-    info = ctx['info']
+def publish_release():
     py = info['python']
 
-    with in_tmpexport(ctx['commit']) as td:
+    with in_tmpexport(commit) as td:
         if opts['dry_run']:
             log.info('Creating source distribution, no upload (dry-run)')
             subprocess.check_output(

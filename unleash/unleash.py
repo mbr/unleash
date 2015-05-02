@@ -8,6 +8,7 @@ from dulwich.index import build_index_from_tree
 from logbook import Logger
 from tempdir import TempDir
 
+from . import new_local_stack, issues, opts, info, commit
 from .exc import InvocationError, PluginError
 from .git import export_tree, MalleableCommit, ResolvedRef, get_local_timezone
 from .issues import IssueCollector
@@ -74,128 +75,122 @@ class Unleash(object):
     def __init__(self, plugins=[]):
         self.plugins = plugins
 
-    def _perform_step(self, ctx, signal_name, issues):
-        ctx['issues'] = issues.channel(signal_name)
+    def _perform_step(self, signal_name):
+        # create new top-level context
+        with new_local_stack() as nc:
+            nc['issues'] = issues.channel(signal_name)
 
         log.debug('begin: {}'.format(signal_name))
+
         begin = time.time()
-        self.plugins.notify(signal_name, ctx=ctx)
+        self.plugins.notify(signal_name)
         duration = time.time() - begin
+
         log.debug('end: {}, took {:.4f}s'.format(signal_name, duration))
 
     def create_release(self, ref):
-        try:
-            opts = self.opts
+        with new_local_stack() as nc:
+            nc['opts'] = self.opts
+
+            # resolve reference
             base_ref = ResolvedRef(self.repo, ref)
             log.debug(
                 'Base ref: {} ({})'.format(base_ref.full_name, base_ref.id)
             )
-
             orig_tree = base_ref.get_object().tree
-            rcommit = self._create_child_commit(ref)
-            rissues = IssueCollector(log=log)
-            info = {}
 
-            # create context
-            rcontext = {
-                'commit': rcommit,
-                'opts': opts,
-                'info': info,
-                'log': log,
-                'ref': base_ref,
-            }
+            # initialize context
+            nc['commit'] = self._create_child_commit(ref)
+            nc['issues'] = IssueCollector(log=log)
+            nc['info'] = {'ref': base_ref}
+            nc['log'] = log
 
-            self._perform_step(rcontext, 'collect_info', rissues)
-            log.debug('info: {}'.format(
-                pformat(rcontext['info']))
-            )
+            try:
+                self._perform_step('collect_info')
+                log.debug('info: {}'.format(pformat(info)))
 
-            self._perform_step(rcontext, 'prepare_release', rissues)
-            self._perform_step(rcontext, 'lint_release', rissues)
+                self._perform_step('prepare_release')
+                self._perform_step('lint_release')
 
-            if opts['inspect']:
-                log.info(unicode(rcommit))
-                # check out to temporary directory
-                with TempDir() as inspect_dir:
-                    rcommit.export_to(inspect_dir)
+                if opts['inspect']:
+                    log.info(unicode(commit))
 
-                    log.info('You are being dropped into an interactive shell '
-                             'inside a temporary checkout of the release '
-                             'commit. No changes you make will persist. Exit '
-                             'the shell to abort the release process.\n\n'
-                             'Use "exit 2" to continue the release.')
+                    # check out to temporary directory
+                    with TempDir() as inspect_dir:
+                        commit.export_to(inspect_dir)
+
+                        log.info(
+                            'You are being dropped into an interactive shell '
+                            'inside a temporary checkout of the release '
+                            'commit. No changes you make will persist. Exit '
+                            'the shell to abort the release process.\n\n'
+                            'Use "exit 2" to continue the release.'
+                        )
 
                     status = run_user_shell(cwd=inspect_dir)
 
-                if status != 2:
-                    raise InvocationError(
-                        'Aborting release, got exit code {} from shell.'.
-                        format(status))
+                    if status != 2:
+                        raise InvocationError(
+                            'Aborting release, got exit code {} from shell.'.
+                            format(status))
 
-            # we're done with the release, now create the dev commit
-            dcommit = self._create_child_commit(ref)
-            dissues = IssueCollector(log=log)
+                # save release commit
+                release_commit = nc['commit']
 
-            # update context
-            dcontext = {
-                'commit': dcommit,
-                'release_commit': rcommit,
-                'opts': opts,
-                'info': info,
-                'issues': dissues.channel('collect'),
-                'log': log,
-            }
+                # we're done with the release, now create the dev commit
+                nc['commit'] = self._create_child_commit(ref)
+                nc['issues'] = IssueCollector(log=log)
 
-            # creating development commit
-            self._perform_step(dcontext, 'prepare_dev', dissues)
+                # creating development commit
+                self._perform_step('prepare_dev')
 
-            if opts['dry_run']:
-                log.info('Not saving created commits. Dry-run successful.')
-                return
+                if opts['dry_run']:
+                    log.info('Not saving created commits. Dry-run successful.')
+                    return
 
-            # we've got both commits, now tag the release
-            self._confirm_prompt(
-                'Advance dev to {} and release {}?'
-                .format(info['dev_version'], info['release_version'])
-            )
-
-            release_tag = 'refs/tags/{}'.format(info['release_version'])
-
-            if release_tag in self.repo.refs:
+                # we've got both commits, now tag the release
                 self._confirm_prompt(
-                    'Repository already contains {}, really overwrite the tag?'
-                    .format(release_tag),
+                    'Advance dev to {} and release {}?'
+                    .format(info['dev_version'], info['release_version'])
                 )
 
-            release_hash = rcommit.save()
+                release_tag = 'refs/tags/{}'.format(info['release_version'])
 
-            log.info('{}: {}'.format(release_tag, release_hash))
-            self.repo.refs[release_tag] = release_hash
+                if release_tag in self.repo.refs:
+                    self._confirm_prompt(
+                        'Repository already contains {}, really overwrite tag?'
+                        .format(release_tag),
+                    )
 
-            # save the dev commit
-            dev_hash = dcommit.save()
+                release_hash = release_commit.save()
 
-            # if our release commit formed from a branch, we set that branch
-            # to our new dev commit
-            assert base_ref.is_definite and base_ref.found
-            if not base_ref.is_ref or\
-                    not base_ref.full_name.startswith('refs/heads'):
-                log.warning('Release commit does not originate from a branch; '
-                            'dev commit will not be reachable.')
-                log.info('Dev commit: {}'.format(dev_hash))
-            else:
-                self.repo.refs[base_ref.full_name] = dev_hash
+                log.info('{}: {}'.format(release_tag, release_hash))
+                self.repo.refs[release_tag] = release_hash
 
-                # change the branch to point at our new dev commit
-                log.info('{}: {}'.format(
-                    base_ref.full_name, dev_hash
-                ))
+                # save the dev commit
+                dev_hash = nc['commit'].save()
 
-                self._update_working_copy(base_ref, orig_tree)
-        except PluginError:
-            # just abort, error has been logged already
-            log.debug('Exiting due to PluginError')
-            return
+                # if our release commit formed from a branch, we set that branch
+                # to our new dev commit
+                assert base_ref.is_definite and base_ref.found
+                if not base_ref.is_ref or\
+                        not base_ref.full_name.startswith('refs/heads'):
+                    log.warning('Release commit does not originate from a '
+                                'branch; dev commit will not be reachable.')
+                    log.info('Dev commit: {}'.format(dev_hash))
+                else:
+                    self.repo.refs[base_ref.full_name] = dev_hash
+
+                    # change the branch to point at our new dev commit
+                    log.info('{}: {}'.format(
+                        base_ref.full_name, dev_hash
+                    ))
+
+                    self._update_working_copy(base_ref, orig_tree)
+            except PluginError:
+                # just abort, error has been logged already
+                log.debug('Exiting due to PluginError')
+                return
 
     def _update_working_copy(self, base_ref, orig_tree):
         head_ref = ResolvedRef(self.repo, 'HEAD')
@@ -252,26 +247,23 @@ class Unleash(object):
             ref = tags[0][0]
 
         pref = ResolvedRef(self.repo, ref)
-        pcommit = MalleableCommit.from_existing(self.repo, pref.id)
-        log.debug('Release tag: {}'.format(pcommit))
 
-        pissues = IssueCollector(log=log)
-        pcontext = {
-            'commit': pcommit,
-            'opts': self.opts,
-            'info': {},
-            'log': log,
-            'ref': pref,
-        }
+        with new_local_stack() as nc:
+            nc['commit'] = MalleableCommit.from_existing(self.repo, pref.id)
+            log.debug('Release tag: {}'.format(commit))
 
-        try:
-            self._perform_step(pcontext, 'collect_info', pissues)
-            log.debug('info: {}'.format(pformat(pcontext['info'])))
+            nc['issues'] = IssueCollector(log=log)
+            nc['opts'] = self.opts
+            nc['info'] = {'ref': pref}
+            nc['log'] = log
 
-            self._perform_step(pcontext, 'publish_release', pissues)
-        except PluginError:
-            log.debug('Exiting due to PluginError')
-            return
+            try:
+                self._perform_step('collect_info')
+                log.debug('info: {}'.format(pformat(info)))
+                self._perform_step('publish_release')
+            except PluginError:
+                log.debug('Exiting due to PluginError')
+                return
 
     def set_global_opts(self, root, opts=None):
         self.opts = opts or {}

@@ -2,6 +2,7 @@ import subprocess
 
 from click import Option
 from shutilwhich import which
+from unleash import opts, info, log, issues
 
 
 PLUGIN_NAME = 'git'
@@ -18,46 +19,38 @@ def setup(cli):
     ))
 
 
-def collect_info(ctx):
-    info = ctx['info']
-
-    gb = ctx['opts']['git_binary']
+def collect_info():
+    gb = opts['git_binary']
     git_binary = which(gb)
     if not git_binary:
-        ctx['issues'].error('Could not find git binary: {}.'.format(gb))
+        issues.error('Could not find git binary: {}.'.format(gb))
 
     info['git_path'] = git_binary
-
-    ref = ctx['ref']
-
-    info['git_tag_name'] = ref.tag_name
+    info['git_tag_name'] = info['ref'].tag_name
 
 
-def publish_release(ctx):
-    info = ctx['info']
+def publish_release():
     tag = info['git_tag_name']
-    remote = ctx['opts']['git_remote']
-    issues = ctx['issues']
+    remote = opts['git_remote']
 
     if not tag:
-        ctx['issues'].warn('Published release is not from a tag',
-                           'The release you are publishing was not retrieved '
-                           'from a tag. For safety reasons, it will not get '
-                           'pushed upstream.')
+        issues.warn('Published release is not from a tag. The release you are '
+                    'publishing was not retrieved from a tag. For safety '
+                    'reasons, it will not get pushed upstream.')
     else:
-        if not ctx['opts']['dry_run']:
-            ctx['log'].info('Pushing tag \'{}\' to remote \'{}\''.format(
+        if not opts['dry_run']:
+            log.info('Pushing tag \'{}\' to remote \'{}\''.format(
                 tag, remote
             ))
             try:
-                args = [ctx['opts']['git_binary'],
+                args = [opts['git_binary'],
                         'push',
                         remote,
                         tag]
-                subprocess.check_output(args, cwd=ctx['opts']['root'])
+                subprocess.check_output(args, cwd=opts['root'])
             except subprocess.CalledProcessError as e:
                 issues.error('Failed to push tag:\n{}'.format(e.output))
 
         else:
-            ctx['log'].info('Not pushing tag \'{}\' to remote \'{}\''
-                            ' (dry-run)'.format(tag, remote))
+            log.info('Not pushing tag \'{}\' to remote \'{}\' (dry-run)'
+                     .format(tag, remote))

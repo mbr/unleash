@@ -1,6 +1,7 @@
 import os
 import subprocess
 
+from unleash import info, log, issues, commit
 from unleash.util import VirtualEnv
 from .utils_tree import in_tmpexport
 
@@ -15,13 +16,9 @@ def _setup_py(ve, tmpdir, *args):
     return ve.check_output(a)
 
 
-def lint_release(ctx):
-    info = ctx['info']
-    log = ctx['log']
-    issues = ctx['issues']
-
+def lint_release():
     log.info('Verifying release can generate source distribution')
-    with VirtualEnv.temporary() as ve, in_tmpexport(ctx['commit']) as td:
+    with VirtualEnv.temporary() as ve, in_tmpexport(commit) as td:
         log.debug('Running setup.py sdist')
         try:
             _setup_py(ve, td, 'sdist')

@@ -2,6 +2,7 @@ from click import Option
 
 import subprocess
 
+from unleash import info, opts, commit, issues, log
 from unleash.util import VirtualEnv
 from .utils_tree import in_tmpexport
 
@@ -15,12 +16,11 @@ def setup(cli):
     ))
 
 
-def lint_release(ctx):
-    info = ctx['info']
-    info['tox_tests'] = ctx['opts']['tests']
+def lint_release():
+    info['tox_tests'] = opts['tests']
 
-    if not ctx['commit'].path_exists('tox.ini'):
-        ctx['issues'].warn(
+    if not commit.path_exists('tox.ini'):
+        issues.warn(
             'No tox.ini found.',
             'There was no tox.ini found in the project root. No tests will be '
             'run on the release.')
@@ -29,12 +29,12 @@ def lint_release(ctx):
     if not info['tox_tests']:
         return
 
-    ctx['log'].info('Running tox tests')
+    log.info('Running tox tests')
     try:
-        ctx['log'].debug('Installing tox in a new virtualenv')
-        with VirtualEnv.temporary() as ve, in_tmpexport(ctx['commit']):
+        log.debug('Installing tox in a new virtualenv')
+        with VirtualEnv.temporary() as ve, in_tmpexport(commit):
             ve.pip_install('tox')
-            ctx['log'].debug('Running tests using tox')
+            log.debug('Running tests using tox')
             ve.check_output(ve.get_binary('tox'))
     except subprocess.CalledProcessError as e:
-        ctx['issues'].error('tox testing failed:\n{}'.format(e.output))
+        issues.error('tox testing failed:\n{}'.format(e.output))

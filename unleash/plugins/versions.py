@@ -1,15 +1,15 @@
 from click import Option
 from versio.version import Version
 
+from unleash import log, opts, issues, commit, info
 from .utils_assign import find_assign, replace_assign
 from .utils_tree import require_file
 
 PLUGIN_NAME = 'versions'
 
 
-def require_setup_py(ctx):
+def require_setup_py():
     return require_file(
-        ctx,
         'setup.py',
         'No setup.py found',
         'The version could not determined because no setup.py file was found. '
@@ -45,18 +45,14 @@ def _shorten_version(version):
     return v
 
 
-def _set_commit_version(ctx, version):
-    commit = ctx['commit']
-    info = ctx['info']
-
+def _set_commit_version(version):
     # Steps
     # 1. Replace commit message
     # 2. Replace version in setup.py
     # 3. Replace version in PKGNAME/__init__.py
 
-    setup_py = require_setup_py(ctx)
-    ctx['log'].info('Updating setup.py and package version ({})'
-                    .format(version))
+    setup_py = require_setup_py()
+    log.info('Updating setup.py and package version ({})'.format(version))
 
     # update setup.py
     commit.set_path_data('setup.py', replace_assign(
@@ -75,15 +71,11 @@ def _set_commit_version(ctx, version):
         ))
 
 
-def collect_info(ctx):
-    opts = ctx['opts']
-    info = ctx['info']
-    commit = ctx['commit']
-
+def collect_info():
     release_version = opts.get('release_version')
     dev_version = opts.get('dev_version')
 
-    setup_py = require_setup_py(ctx)
+    setup_py = require_setup_py()
 
     try:
         if release_version is None:
@@ -91,16 +83,15 @@ def collect_info(ctx):
             try:
                 release_version = find_assign(setup_py, 'version')
             except ValueError as e:
-                ctx['issues'].error(
+                issues.error(
                     e,
                     'There was an issue extracting the version number from '
                     'setup.py. Please make sure there is only a single '
                     'version= assignment in that file.')
 
-            ctx['log'].debug('Release version automatically determined from '
-                             'setup.py')
+            log.debug('Release version automatically determined from setup.py')
         else:
-            ctx['log'].debug('Release version given on commandline.')
+            log.debug('Release version given on commandline.')
 
         # parse release version string
         release_version = _shorten_version(release_version)
@@ -115,7 +106,7 @@ def collect_info(ctx):
             # parse dev version string
             dev_version = Version(dev_version)
     except TypeError as e:
-        ctx['issues'].error(
+        issues.error(
             'Bad version number: {}'.format(e),
             'The version number "{}" is not a version number that can be '
             'understood by distutils.\n\n'
@@ -126,7 +117,7 @@ def collect_info(ctx):
     try:
         pkg_name = find_assign(setup_py, 'name')
     except ValueError as e:
-        ctx['issues'].error(
+        issues.error(
             e,
             'Could not extract package name from setup.py. Please make sure '
             'there is only a single name= expression in that file.')
@@ -145,13 +136,13 @@ def collect_info(ctx):
         pkg_paths = set([info['pkg_name'],
                          info['pkg_name'].replace('-', '_')])
 
-    ctx['log'].debug('Package paths: {}'.format(pkg_paths))
+    log.debug('Package paths: {}'.format(pkg_paths))
     init_files = [path + '/__init__.py' for path in pkg_paths]
 
     init_files = filter(commit.path_exists, init_files)
 
     if not init_files:
-        ctx['issues'].warn(
+        issues.warn(
             'No __init__.py files found for packages.',
             'While looking for package __init__.py files to update version '
             'information in, none were found. This most often happens if your '
@@ -161,21 +152,15 @@ def collect_info(ctx):
     info['init_files'] = init_files
 
 
-def prepare_release(ctx):
-    commit = ctx['commit']
-    info = ctx['info']
-
+def prepare_release():
     # update commit message
     commit.message = u'Release version {}'.format(info['release_version'])
 
-    _set_commit_version(ctx, info['release_version'])
+    _set_commit_version(info['release_version'])
 
 
-def prepare_dev(ctx):
-    commit = ctx['commit']
-    info = ctx['info']
-
+def prepare_dev():
     commit.message = (u'Start developing version {} (after release of {})'
                       .format(info['dev_version'], info['release_version']))
 
-    _set_commit_version(ctx, info['dev_version'])
+    _set_commit_version(info['dev_version'])
