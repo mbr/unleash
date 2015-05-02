@@ -1,7 +1,6 @@
 from pprint import pformat
 import time
 
-import click
 from dulwich.repo import Repo
 from dulwich.index import build_index_from_tree
 from logbook import Logger
@@ -11,16 +10,12 @@ from . import new_local_stack, issues, opts, info, commit
 from .exc import InvocationError, PluginError
 from .git import MalleableCommit, ResolvedRef, get_local_timezone
 from .issues import IssueCollector
-from .util import run_user_shell
+from .util import run_user_shell, confirm_prompt
 
 log = Logger('unleash')
 
 
 class Unleash(object):
-    def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
-        if opts['interactive']:
-            click.confirm(text, default=default, abort=abort, **kwargs)
-
     def _create_child_commit(self, parent_ref):
         parent = ResolvedRef(self.repo, parent_ref)
 
@@ -140,7 +135,7 @@ class Unleash(object):
                     return
 
                 # we've got both commits, now tag the release
-                self._confirm_prompt(
+                confirm_prompt(
                     'Advance dev to {} and release {}?'
                     .format(info['dev_version'], info['release_version'])
                 )
@@ -148,7 +143,7 @@ class Unleash(object):
                 release_tag = 'refs/tags/{}'.format(info['release_version'])
 
                 if release_tag in self.repo.refs:
-                    self._confirm_prompt(
+                    confirm_prompt(
                         'Repository already contains {}, really overwrite tag?'
                         .format(release_tag),
                     )
@@ -210,7 +205,7 @@ class Unleash(object):
             return
 
         # reset the index to the new dev commit
-        self._confirm_prompt(
+        confirm_prompt(
             'Do you want to reset your index to the new dev commit and check '
             'it out? Unsaved changes to your working copy may be overwritten!'
         )
