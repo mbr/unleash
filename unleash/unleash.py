@@ -1,7 +1,5 @@
 from contextlib import contextmanager
 from pprint import pformat
-import os
-import subprocess
 import time
 
 import click
@@ -13,6 +11,7 @@ from tempdir import TempDir
 from .exc import InvocationError, PluginError
 from .git import export_tree, MalleableCommit, ResolvedRef, get_local_timezone
 from .issues import IssueCollector
+from .util import run_user_shell
 
 log = Logger('unleash')
 
@@ -126,7 +125,7 @@ class Unleash(object):
                              'the shell to abort the release process.\n\n'
                              'Use "exit 2" to continue the release.')
 
-                    status = self.run_user_shell(cwd=inspect_dir)
+                    status = run_user_shell(cwd=inspect_dir)
 
                 if status != 2:
                     raise InvocationError(
@@ -273,9 +272,6 @@ class Unleash(object):
         except PluginError:
             log.debug('Exiting due to PluginError')
             return
-
-    def run_user_shell(self, **kwargs):
-        return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
 
     def set_global_opts(self, root, opts=None):
         self.opts = opts or {}

@@ -68,3 +68,7 @@ def checked_output(cmd, *args, **kwargs):
     except subprocess.CalledProcessError as e:
         log.error('Error calling external process.\n%s' % e.output)
         raise
+
+
+def run_user_shell(self, **kwargs):
+    return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
