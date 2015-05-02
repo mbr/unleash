@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from pprint import pformat
 import time
 
@@ -10,7 +9,7 @@ from tempdir import TempDir
 
 from . import new_local_stack, issues, opts, info, commit
 from .exc import InvocationError, PluginError
-from .git import export_tree, MalleableCommit, ResolvedRef, get_local_timezone
+from .git import MalleableCommit, ResolvedRef, get_local_timezone
 from .issues import IssueCollector
 from .util import run_user_shell
 
@@ -21,14 +20,6 @@ class Unleash(object):
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
         if opts['interactive']:
             click.confirm(text, default=default, abort=abort, **kwargs)
-
-    @contextmanager
-    def _checked_out(self, tree):
-        with TempDir() as tmpdir:
-            export_tree(self.repo.object_store.__getitem__,
-                        self.repo[tree],
-                        tmpdir)
-            yield tmpdir
 
     def _create_child_commit(self, parent_ref):
         parent = ResolvedRef(self.repo, parent_ref)
