@@ -19,7 +19,7 @@ log = Logger('unleash')
 
 class Unleash(object):
     def _confirm_prompt(self, text, default=True, abort=True, **kwargs):
-        if self.opts['interactive']:
+        if opts['interactive']:
             click.confirm(text, default=default, abort=abort, **kwargs)
 
     @contextmanager
@@ -31,8 +31,6 @@ class Unleash(object):
             yield tmpdir
 
     def _create_child_commit(self, parent_ref):
-        opts = self.opts
-
         parent = ResolvedRef(self.repo, parent_ref)
 
         if not parent.is_definite:
@@ -75,6 +73,10 @@ class Unleash(object):
     def __init__(self, plugins=[]):
         self.plugins = plugins
 
+    def _init_repo(self):
+        self.repo = Repo(opts['root'])
+        self.gitconfig = self.repo.get_config_stack()
+
     def _perform_step(self, signal_name):
         # create new top-level context
         with new_local_stack() as nc:
@@ -90,8 +92,6 @@ class Unleash(object):
 
     def create_release(self, ref):
         with new_local_stack() as nc:
-            nc['opts'] = self.opts
-
             # resolve reference
             base_ref = ResolvedRef(self.repo, ref)
             log.debug(
@@ -253,7 +253,6 @@ class Unleash(object):
             log.debug('Release tag: {}'.format(commit))
 
             nc['issues'] = IssueCollector(log=log)
-            nc['opts'] = self.opts
             nc['info'] = {'ref': pref}
             nc['log'] = log
 
@@ -264,10 +263,3 @@ class Unleash(object):
             except PluginError:
                 log.debug('Exiting due to PluginError')
                 return
-
-    def set_global_opts(self, root, opts=None):
-        self.opts = opts or {}
-        self.root = root
-
-        self.repo = Repo(root)
-        self.gitconfig = self.repo.get_config_stack()

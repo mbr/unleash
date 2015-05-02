@@ -6,6 +6,7 @@ from logbook.handlers import NullHandler
 from .exc import UnleashError
 from .plugin import PluginGraph
 from .unleash import Unleash
+from . import _context, opts
 
 
 log = logbook.Logger('cli')
@@ -31,14 +32,16 @@ def cli(unleash, root, loglevel, batch, **kwargs):
     ColorizedStderrHandler(format_string='{record.message}',
                            level=loglevel).push_application()
 
-    opts = {
-        'interactive': not batch,
-        'root': root,
-    }
+    _context.push({
+        'opts': {}
+    })
 
+    opts['interactive'] = not batch,
+    opts['root'] = root
     opts.update(kwargs)
 
-    unleash.set_global_opts(root, opts)
+    unleash._init_repo()
+
     log.debug('Plugin order: {}'.format(unleash.plugins.resolve_order()))
 
 
@@ -55,7 +58,7 @@ def cli(unleash, root, loglevel, batch, **kwargs):
               help='Branch/Tag/Commit to release.')
 @click.pass_obj
 def release(unleash, ref, **kwargs):
-    unleash.opts.update(kwargs)
+    opts.update(kwargs)
     unleash.create_release(ref)
 
 
@@ -65,7 +68,7 @@ def release(unleash, ref, **kwargs):
                    'tag by commit date.')
 @click.pass_obj
 def publish(unleash, ref, **kwargs):
-    unleash.opts.update(kwargs)
+    opts.update(kwargs)
     unleash.publish(ref)
 
 
