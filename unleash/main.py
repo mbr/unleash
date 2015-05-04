@@ -4,8 +4,7 @@ import os
 
 import logbook
 
-from .util import dirch, checked_output, confirm, tmp_virtualenv, tmp_checkout
-from .exc import ReleaseError
+from .util import dirch, checked_output, tmp_virtualenv, tmp_checkout
 
 log = logbook.Logger('unleash')
 
