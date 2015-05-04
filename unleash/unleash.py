@@ -9,7 +9,7 @@ from tempdir import TempDir
 from . import new_local_stack, issues, opts, info, commit
 from .exc import InvocationError, PluginError
 from .git import MalleableCommit, ResolvedRef, get_local_timezone
-from .issues import IssueCollector
+from .report import IssueCollector
 from .util import run_user_shell, confirm_prompt
 
 log = Logger('unleash')
