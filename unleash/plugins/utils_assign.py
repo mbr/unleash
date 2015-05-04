@@ -1,3 +1,5 @@
+from unleash.exc import PluginError
+
 import re
 
 
@@ -17,10 +19,11 @@ def find_assign(data, varname):
     ASSIGN_RE = re.compile(BASE_ASSIGN_PATTERN.format(varname))
 
     if len(ASSIGN_RE.findall(data)) > 1:
-        raise ValueError('Found multiple {}-strings.'.format(varname))
+        raise PluginError('Found multiple {}-strings.'.format(varname))
 
     if len(ASSIGN_RE.findall(data)) < 1:
-        raise ValueError('No version assignment ("{}") found.'.format(varname))
+        raise PluginError('No version assignment ("{}") found.'
+                          .format(varname))
 
     return ASSIGN_RE.search(data).group(2)
 
