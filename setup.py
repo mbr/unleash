@@ -28,5 +28,8 @@ setup(
         'console_scripts': [
             'unleash = unleash.cli:main',
         ],
-    }
+    },
+    classifiers=[
+        'Programming Language :: Python :: 2',
+    ]
 )
