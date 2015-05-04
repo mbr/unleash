@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import os
 
-
 import logbook
 
 from .util import dirch, checked_output, tmp_virtualenv, tmp_checkout
