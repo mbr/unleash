@@ -7,8 +7,8 @@ master_doc = 'index'
 project = u'unleash'
 copyright = u'2015, Marc Brinkmann'
 
-version = '0.6.1'
-release = '0.6.1.dev1'
+version = '0.7.0'
+release = '0.7.0'
 
 exclude_patterns = ['_build']
 pygments_style = 'sphinx'
