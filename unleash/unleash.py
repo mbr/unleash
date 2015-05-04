@@ -64,14 +64,16 @@ class Unleash(object):
         self.gitconfig = self.repo.get_config_stack()
 
     def _perform_step(self, signal_name):
-        # create new top-level context
-        with new_local_stack() as nc:
-            nc['issues'] = issues.channel(signal_name)
 
         log.debug('begin: {}'.format(signal_name))
 
         begin = time.time()
-        self.plugins.notify(signal_name)
+
+        # create new top-level context
+        with new_local_stack() as nc:
+            nc['issues'] = issues.channel(signal_name)
+            self.plugins.notify(signal_name)
+
         duration = time.time() - begin
 
         log.debug('end: {}, took {:.4f}s'.format(signal_name, duration))
