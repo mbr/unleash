@@ -76,7 +76,7 @@ def run_user_shell(self, **kwargs):
     return subprocess.call(os.environ['SHELL'], env=os.environ, **kwargs)
 
 
-def confirm_prompt(self, text, default=True, abort=True, **kwargs):
+def confirm_prompt(text, default=True, abort=True, **kwargs):
     if opts['interactive']:
         return click.confirm(text, default=default, abort=abort, **kwargs)
     return True
