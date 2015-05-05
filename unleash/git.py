@@ -23,19 +23,20 @@ def export_tree(lookup, tree, path):
 
     for name, mode, hexsha in tree.iteritems():
         dest = os.path.join(path, name)
-        obj = lookup(hexsha)
 
         if S_ISGITLINK(mode):
-            raise ValueError('Does not support submodules')
+            log.error('Ignored submodule {}; submodules are not yet supported.'
+                      .format(name))
+            # raise ValueError('Does not support submodules')
         elif S_ISDIR(mode):
             os.mkdir(dest)
             os.chmod(dest, 0o0755)
-            export_tree(lookup, obj, dest)
+            export_tree(lookup, lookup(hexsha), dest)
         elif S_ISLNK(mode):
-            os.symlink(obj.data, dest)
+            os.symlink(lookup(hexsha).data, dest)
         elif S_ISREG(mode):
             with open(dest, 'wb') as out:
-                for chunk in obj.chunked:
+                for chunk in lookup(hexsha).chunked:
                     out.write(chunk)
             os.chmod(dest, mode & FILE_PERM)
         else:
