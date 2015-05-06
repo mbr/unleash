@@ -1,12 +1,14 @@
 import os
 
 from pluginbase import PluginBase
+from logbook import Logger
 
 from . import plugins
 from .depgraph import DependencyGraph
 from .exc import InvocationError
 
 plugin_base = PluginBase(package='unleash.plugins')
+log = Logger('plugins')
 
 
 class PluginGraph(DependencyGraph):
@@ -42,8 +44,12 @@ class PluginGraph(DependencyGraph):
 
     def notify(self, funcname, *args, **kwargs):
         rvs = []
+        order = self.resolve_order()
 
-        for plugin_name in self.resolve_order():
+        log.debug('Sending {} signal to plugins in the following order: {}'
+                  .format(funcname, order))
+
+        for plugin_name in order:
             if not plugin_name in self.plugin_mods:
                 raise InvocationError(
                     'Could not find plugin {}, which is required by {}'
