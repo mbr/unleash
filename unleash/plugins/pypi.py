@@ -6,6 +6,7 @@ from click import Option
 from six.moves import shlex_quote
 from .utils_tree import in_tmpexport
 from unleash import log, opts, info, issues, commit
+from unleash.util import VirtualEnv
 
 
 PLUGIN_NAME = 'pypi'
@@ -39,18 +40,18 @@ def collect_info():
 
 
 def publish_release():
-    py = info['python']
-
-    with in_tmpexport(commit) as td:
+    with in_tmpexport(commit) as td, VirtualEnv.temporary() as ve:
         if opts['dry_run']:
             log.info('Creating source distribution, no upload (dry-run)')
             subprocess.check_output(
-                [py, 'setup.py', 'sdist'],
+                [ve.python, 'setup.py', 'sdist'],
                 cwd=td,
             )
         else:
+            # install to pull in requirements for building the docs
+            ve.pip_install(td)
 
-            args = [py, 'setup.py',
+            args = [ve.python, 'setup.py',
                     'sdist',
                     'upload'
                     ]
@@ -69,11 +70,12 @@ def publish_release():
                 log.info('Uploading unsigned source distribution to PyPI')
 
             if opts['upload_docs']:
+                ve.pip_install('sphinx')
                 args.append('upload_docs')
                 log.info('Building and uploading documentation to PyPI')
 
             log.debug('Running {}'.format(args))
-            subprocess.check_output(
+            ve.check_output(
                 args,
                 cwd=td,
             )
