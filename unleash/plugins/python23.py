@@ -22,6 +22,6 @@ def lint_release():
     else:
         if not _PY2_CLASSIFIER in cs and not _PY3_CLASSIFIER in cs:
             issues.warn(
-                'Not version classifiers found',
+                'No version classifiers found',
                 'Your classifiers included neither {} nor {}. At least one '
                 'of those is required to indicate compatiblity.')
