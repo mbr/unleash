@@ -22,10 +22,6 @@ def setup(cli):
         ['--identity', '-i'],
         help='Identity to use when signing.'
     ))
-    cli.commands['publish'].params.append(Option(
-        ['--upload-docs/--no-upload-docs', '-d/-D'], default=True,
-        help='Upload documentation to PyPI.'
-    ))
 
 
 def collect_info():
@@ -48,7 +44,6 @@ def publish_release():
                 cwd=td,
             )
         else:
-            # install to pull in requirements for building the docs
             ve.pip_install(td)
 
             args = [ve.python, 'setup.py',
@@ -68,11 +63,6 @@ def publish_release():
                              'using default identity')
             else:
                 log.info('Uploading unsigned source distribution to PyPI')
-
-            if opts['upload_docs']:
-                ve.pip_install('sphinx')
-                args.append('upload_docs')
-                log.info('Building and uploading documentation to PyPI')
 
             log.debug('Running {}'.format(args))
             ve.check_output(

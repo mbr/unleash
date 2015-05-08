@@ -28,6 +28,10 @@ def setup(cli):
         ['--sphinx-strict/--no-sphinx-strict'], default=True,
         help='Turn sphinx warnings into errors (default: True).'
     ))
+    cli.commands['publish'].params.append(Option(
+        ['--upload-docs/--no-upload-docs', '-d/-D'], default=True,
+        help='Upload documentation to PyPI.'
+    ))
 
 
 def collect_info():
@@ -145,3 +149,25 @@ def lint_release():
 def prepare_dev():
     _set_doc_version(info['dev_version'],
                      info['dev_version_short'])
+
+
+def publish_release():
+    conf = _get_doc_conf()
+    if not conf:
+        return
+
+    if opts['upload_docs']:
+        log.info('Uploading documentation to PyPI')
+
+    # create doc virtualenv
+    with VirtualEnv.temporary() as ve, in_tmpexport(commit) as srcdir:
+        try:
+            sphinx_install(ve)
+            ve.pip_install(srcdir)
+            ve.check_output([
+                ve.python, 'setup.py', 'upload_docs'
+            ])
+        except subprocess.CalledProcessError as e:
+            issues.error(
+                'Error building documentation:\n{}'.format(e)
+            )
