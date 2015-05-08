@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import re
 from stat import S_ISLNK, S_ISDIR, S_ISREG, S_IFDIR, S_IRWXU, S_IRWXG, S_IRWXO
 import time
 
@@ -10,6 +11,7 @@ from stuf.collects import ChainMap
 
 
 log = logbook.Logger('git')
+HASH_RE = re.compile('^[a-zA-Z0-9]{40}$')
 
 
 def export_tree(lookup, tree, path):
@@ -80,6 +82,12 @@ class ResolvedRef(object):
         self.ref = ref
         self.lookup = lookup or repo.object_store.__getitem__
 
+        candidates = []
+
+        # only check sha1 hashes
+        if HASH_RE.match(ref) and ref in self.repo.object_store:
+            candidates.append((ref, 'object', None))
+
         full_names = [
             ref,
             'refs/tags/{}'.format(ref),
@@ -87,11 +95,6 @@ class ResolvedRef(object):
             'refs/remotes/{}'.format(ref),
             'refs/{}'.format(ref),
         ]
-
-        candidates = []
-
-        if ref in self.repo.object_store:
-            candidates.append((ref, 'object', None))
 
         for name in full_names:
             if name in self.repo.refs:
