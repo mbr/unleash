@@ -1,19 +1,19 @@
 Unleash your code
 =================
 
-``unleash`` handles the boring details of cutting a release and publishing it
-to somewhere. It assists you doing things like updating version numbers, make
-sure the documentation builds, reminding you that you still need to include a
-LICENSE file and other things.
+``unleash`` handles the boring details of cutting from your Python package a
+``release`` and publishing it. It assists you by updating version numbers,
+making sure the documentation builds, reminding you that you still need to
+include a LICENSE file and other things.
 
-Once a release is made, it gets tagged in your git repository and you can use
-the publish-functionality to push the new tag to github.com and/or upload your
+Once a release is made, it gets tagged in your git repository. unleash features
+a ``publish`` action to push the new tag to github.com and/or upload your
 package to `PyPI <http://pypi.python.org>`_
 
-Unleash always works with commits, not files in your working copy and creates
-temporary checkouts or verifies directly from the commit's tree. This way you
-can be sure it's not working on your machine only, because you forgot to
-check-in that crucial file that's missing from the release commit.
+Unleash always works with commits instead of files in your working copy to
+ensure all your release are fully committed. It creates temporary checkouts or
+verifies directly from the commit's tree. Never again will you have a bad
+release because you forgot to check-in that crucial file.
 
 
 Examples
