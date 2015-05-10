@@ -27,22 +27,25 @@ release number.
 
 The release process happens in distinct steps:
 
-1. The **info** collection phase. Unleash gathers required information in this
-   step that is used in steps further down.
-2. During the **release_prep** phase, the *release commit* is created.
-3. Afterwards, a **lint** is performed on the *release commit*.
-4. Finally the newly prepared and linted committ gets tagged.
+1. The **collect_info** phase. Unleash gathers required information in this
+   step that is used later on.
+2. During the **prepare_release** phase, the *release commit* is created.
+3. Afterwards, a **lint_release** is performed on the *release commit*. This
+   will check the resulting new commit for errors and warnings.
+4. During the **prepare_dev** phase, a new development commit. This usually
+   just means bumping the version number to the next ``.dev``-version.
+4. If everything went fine, these commits (which existed only in memory up
+   until this point) are added to the repository. unleash will also update
+   branches when it is safe to do so.
 
 
+Release a release
+-----------------
 
-Create a development commit
----------------------------
+The release action consists of two steps:
 
-After creating a *release commit*, the commit it was based on is "incremented"
-as well. This usually just entails incrementing the version number from
-something like ``0.6.dev1`` to ``0.7.dev1``.
-
-This process only has a single step, which is called the **dev_prepare** step.
+1. The **collect_info** step, which is the same as during the release process.
+2. The **publish_release** step, which performs actual actions.
 
 
 
