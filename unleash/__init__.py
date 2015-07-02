@@ -1,4 +1,4 @@
-__version__ = '0.7.1.dev1'
+__version__ = '0.7.2.dev1'
 
 
 from contextlib import contextmanager
