@@ -34,7 +34,7 @@ The release process happens in distinct steps:
    will check the resulting new commit for errors and warnings.
 4. During the **prepare_dev** phase, a new development commit. This usually
    just means bumping the version number to the next ``.dev``-version.
-4. If everything went fine, these commits (which existed only in memory up
+5. If everything went fine, these commits (which existed only in memory up
    until this point) are added to the repository. unleash will also update
    branches when it is safe to do so.
 
