@@ -74,9 +74,10 @@ def publish(unleash, ref, **kwargs):
 
 def main():
     try:
-        plugins = PluginGraph()
-        plugins.collect_plugins()
-        plugins.notify('setup', cli)
+        with NullHandler().applicationbound():
+            plugins = PluginGraph()
+            plugins.collect_plugins()
+            plugins.notify('setup', cli)
 
         # instantiate application object
         unleash = Unleash(plugins)
