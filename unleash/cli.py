@@ -77,10 +77,12 @@ def publish(unleash, ref, **kwargs):
 
 @cli.command()
 @click.argument('recipe')
-def boilerplate(recipe):
+@click.option('-d', '--destination', default='.', type=click.Path())
+def boilerplate(recipe, destination):
     rcp = Recipe(recipe)
 
     rcp.collect_answers()
+    rcp.run(destination)
 
 
 def main():

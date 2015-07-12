@@ -2,6 +2,11 @@ import json
 import os
 
 import click
+from jinja2 import Environment, FileSystemLoader
+from pluginbase import PluginBase
+
+
+plugin_base = PluginBase(package='unleash.boilerplate_plugins')
 
 
 class Choice(object):
@@ -69,6 +74,30 @@ class Variable(object):
     def set_value(self, new_value):
         self.user_value = self.type(new_value)
         return True
+
+
+class RunContext(object):
+    def __init__(self, recipe_dir, dest, vars={}):
+        self.recipe_dir = recipe_dir
+        self.dest = dest
+        self.vars = vars
+
+        # prepare jinja env
+        self.env = Environment(loader=FileSystemLoader(
+            os.path.join(self.recipe_dir, 'templates'),
+        ))
+        self.env.globals['vars'] = self.vars
+
+    def render_template_to(self, template, _target=None, **kwargs):
+        tpl = self.env.get_template(template)
+        buf = tpl.render(**kwargs)
+
+        _target = _target or template
+        outfn = os.path.join(self.dest, _target)
+        with open(outfn, 'w') as out:
+            out.write(buf)
+
+        click.secho('wrote {}'.format(outfn), fg='green', bold=True)
 
 
 class Recipe(object):
@@ -163,3 +192,17 @@ class Recipe(object):
             var = self.vars[val]
 
             self.enter_var(var)
+
+    def run(self, destdir):
+        # import the module
+        src = plugin_base.make_plugin_source(
+            searchpath=[self.path]
+        )
+
+        with src:
+            from unleash.boilerplate_plugins import recipe
+
+        vars = {v.name.lower().replace(' ', '_'): v.get_value()
+                for v in self.vars}
+        ctx = RunContext(self.path, destdir, vars)
+        recipe.run(ctx)
