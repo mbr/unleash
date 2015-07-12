@@ -4,12 +4,36 @@ import os
 import click
 
 
+class Choice(object):
+    def __init__(self, choices):
+        self.choices = set(choices)
+
+    def __call__(self, val):
+        if val not in self.choices:
+            raise ValueError('Must be one of {}'.format(
+                ', '.join(self.choices)
+            ))
+
+        return val
+
+
 class Variable(object):
     def __init__(self, d):
         self.name = d['var']
         self.user_value = None
         self.required = True
-        self.type = str
+
+        vartype = d.get('type')
+
+        if vartype == 'choice':
+            self.type = Choice(d['choices'])
+        elif vartype == 'int':
+            self.type = int
+        elif vartype == 'float':
+            self.type = float
+        else:
+            self.type = str
+
         self.default = self.type(d['default']) if 'default' in d else None
 
     @classmethod
@@ -119,6 +143,6 @@ class Recipe(object):
                 try:
                     var.set_value(nval)
                 except (ValueError, TypeError) as e:
-                    click.echo('Invalid value')
+                    click.echo('Invalid value: {}'.format(e))
                 else:
                     break
