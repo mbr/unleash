@@ -94,6 +94,17 @@ class Recipe(object):
 
         self.answers = {}
 
+    def enter_var(self, var):
+        while True:
+            nval = click.prompt('Enter new value for {}'.format(var.name))
+
+            try:
+                var.set_value(nval)
+            except (ValueError, TypeError) as e:
+                click.echo('Invalid value: {}'.format(e))
+            else:
+                break
+
     def collect_answers(self):
         if not self.vars:
             return
@@ -115,7 +126,7 @@ class Recipe(object):
                     var.format_value(),
                 ))
 
-            val = click.prompt('Select option [#/q/y]')
+            val = click.prompt('Select option [#/q/a/y]')
             click.echo()
 
             if val == 'q':
@@ -132,6 +143,14 @@ class Recipe(object):
                     return True
                 continue
 
+            if val == 'a':
+                # ask for each missing value
+                for var in self.vars:
+                    if not var.is_valid():
+                        self.enter_var(var)
+
+                continue
+
             try:
                 val = int(val)
                 if val >= len(self.vars):
@@ -143,13 +162,4 @@ class Recipe(object):
 
             var = self.vars[val]
 
-            # enter new value
-            while True:
-                nval = click.prompt('Enter new value for {}'.format(var.name))
-
-                try:
-                    var.set_value(nval)
-                except (ValueError, TypeError) as e:
-                    click.echo('Invalid value: {}'.format(e))
-                else:
-                    break
+            self.enter_var(var)
