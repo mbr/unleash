@@ -64,7 +64,6 @@ class Unleash(object):
         self.gitconfig = self.repo.get_config_stack()
 
     def _perform_step(self, signal_name):
-
         log.debug('begin: {}'.format(signal_name))
 
         begin = time.time()
