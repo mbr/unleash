@@ -122,8 +122,15 @@ class Recipe(object):
                 return False
 
             if val == 'y':
-                # FIXME: validate
-                return True
+                for var in self.vars:
+                    if not var.is_valid():
+                        click.echo(
+                            '{} does not have a valid value'.format(var.name)
+                        )
+                        break
+                else:
+                    return True
+                continue
 
             try:
                 val = int(val)
