@@ -5,6 +5,7 @@ from logbook.handlers import NullHandler
 
 from .exc import UnleashError
 from .plugin import PluginGraph
+from .boilerplate import Recipe
 from .unleash import Unleash
 from . import _context, opts
 
@@ -23,8 +24,9 @@ log = logbook.Logger('cli')
               help='Path to git repository to use.')
 @click.option('--dry-run', '-n', is_flag=True)
 @click.version_option()
-@click.pass_obj
-def cli(unleash, root, loglevel, batch, **kwargs):
+@click.pass_context
+def cli(ctx, root, loglevel, batch, **kwargs):
+    unleash = ctx.obj
     if loglevel is None:
         loglevel = logbook.INFO
 
@@ -40,7 +42,8 @@ def cli(unleash, root, loglevel, batch, **kwargs):
     opts['root'] = root
     opts.update(kwargs)
 
-    unleash._init_repo()
+    if ctx.invoked_subcommand != 'boilerplate':
+        unleash._init_repo()
 
     log.debug('Plugin order: {}'.format(unleash.plugins.resolve_order()))
 
@@ -70,6 +73,14 @@ def release(unleash, ref, **kwargs):
 def publish(unleash, ref, **kwargs):
     opts.update(kwargs)
     unleash.publish(ref)
+
+
+@cli.command()
+@click.argument('recipe')
+def boilerplate(recipe):
+    rcp = Recipe(recipe)
+
+    rcp.collect_answers()
 
 
 def main():
