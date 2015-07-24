@@ -2,6 +2,7 @@ import click
 import logbook
 from logbook.more import ColorizedStderrHandler
 from logbook.handlers import NullHandler
+import os
 
 from .exc import UnleashError
 from .plugin import PluginGraph
@@ -11,6 +12,17 @@ from . import _context, opts
 
 
 log = logbook.Logger('cli')
+
+
+def umask_value(s):
+    if s == 'off':
+        return False
+    val = int(s, 8)
+
+    if val > 0o777 or val < 0:
+        raise ValueError('Invalid umask')
+
+    return val
 
 
 @click.group()
@@ -23,9 +35,10 @@ log = logbook.Logger('cli')
               resolve_path=True),
               help='Path to git repository to use.')
 @click.option('--dry-run', '-n', is_flag=True)
+@click.option('--umask', default='0022', type=umask_value)
 @click.version_option()
 @click.pass_context
-def cli(ctx, root, loglevel, batch, **kwargs):
+def cli(ctx, root, loglevel, batch, umask, **kwargs):
     unleash = ctx.obj
     if loglevel is None:
         loglevel = logbook.INFO
@@ -33,6 +46,15 @@ def cli(ctx, root, loglevel, batch, **kwargs):
     NullHandler().push_application()
     ColorizedStderrHandler(format_string='{record.message}',
                            level=loglevel).push_application()
+
+    if not umask is False:
+        log.debug('Setting umask to {:04o}'.format(umask))
+        prev_umask = os.umask(umask)
+
+        if prev_umask != umask:
+            log.info('umask changed from {:04o} to {:04o}'.format(
+                prev_umask, umask)
+            )
 
     _context.push({
         'opts': {}
