@@ -44,11 +44,12 @@ def collect_info():
 
     info['doc_dir'] = doc_dir
     if not commit.path_exists(doc_dir):
-        issues.warn(
-            'No documentation folder found',
-            'Your commit does not contain a folder ''docs/''. No docs will be '
-            'built for this release. To fix this, create the folder containing '
-            'Sphinx-documentation.')
+        issues.warn('No documentation folder found',
+                    'Your commit does not contain a folder '
+                    'docs/'
+                    '. No docs will be '
+                    'built for this release. To fix this, create the folder '
+                    'containing Sphinx-documentation.')
         info['doc_dir'] = None
     else:
         info['doc_conf'] = doc_dir.rstrip('/') + '/conf.py'
@@ -68,11 +69,11 @@ def _get_doc_conf():
         return
 
     return require_file(
-        info['doc_conf'], 'Could not find doc''s conf.py',
+        info['doc_conf'], 'Could not find doc'
+        's conf.py',
         'Could not find conf.py in your documentation path ({}). Please check '
         'that if there is a Sphinx-based documentation in that directory.'
-        .format(info['doc_dir'])
-    )
+        .format(info['doc_dir']))
 
 
 def _set_doc_version(version, version_short):
@@ -90,11 +91,12 @@ def _set_doc_version(version, version_short):
 def sphinx_build(ve, srcdir, outdir):
     sphinx_args = [
         ve.get_binary('sphinx-build'),
-        '-b', 'html',    # build html
+        '-b',
+        'html',  # build html
         # the following options don't hurt, but should not be
         # necessary as we are building in a clean temp dir
-        '-E',            # don't use saved environment
-        '-a'             # always write all files
+        '-E',  # don't use saved environment
+        '-a'  # always write all files
     ]
 
     if opts['sphinx_strict']:
@@ -119,8 +121,7 @@ def sphinx_install(ve):
 
 
 def prepare_release():
-    _set_doc_version(info['release_version'],
-                     info['release_version_short'])
+    _set_doc_version(info['release_version'], info['release_version_short'])
 
 
 IMPORT_THEME_RE = re.compile(r'import\s+(sphinx\w*theme\w*)\b')
@@ -145,14 +146,11 @@ def lint_release():
                 sphinx_build(ve, srcdir, outdir)
 
         except subprocess.CalledProcessError as e:
-            issues.error(
-                'Error building documentation:\n{}'.format(e)
-            )
+            issues.error('Error building documentation:\n{}'.format(e))
 
 
 def prepare_dev():
-    _set_doc_version(info['dev_version'],
-                     info['dev_version_short'])
+    _set_doc_version(info['dev_version'], info['dev_version_short'])
 
 
 def publish_release():
@@ -170,10 +168,6 @@ def publish_release():
         try:
             sphinx_install(ve)
             ve.pip_install(srcdir)
-            ve.check_output([
-                ve.python, 'setup.py', 'upload_docs'
-            ])
+            ve.check_output([ve.python, 'setup.py', 'upload_docs'])
         except subprocess.CalledProcessError as e:
-            issues.error(
-                'Error building documentation:\n{}'.format(e)
-            )
+            issues.error('Error building documentation:\n{}'.format(e))
