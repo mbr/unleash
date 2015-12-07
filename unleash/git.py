@@ -42,8 +42,8 @@ def export_tree(lookup, tree, path):
                     out.write(chunk)
             os.chmod(dest, mode & FILE_PERM)
         else:
-            raise ValueError('Cannot deal with mode of {:o} from {}'.format
-                             (mode, name))
+            raise ValueError('Cannot deal with mode of {:o} from {}'.format(
+                mode, name))
 
 
 def get_local_timezone(now=None):
@@ -62,6 +62,7 @@ def one_or_many(f):
             return f(self, self.candidates[0], *args, **kwargs)
         if len(self.candidates) > 1:
             return [f(self, c) for c in self.candidates]
+
     return _
 
 
@@ -171,9 +172,17 @@ class ResolvedRef(object):
 
 
 class MalleableCommit(object):
-    def __init__(self, repo, author=u'', message=u'', parent_ids=[], tree=None,
-                 committer=None, commit_time=None, author_time=None,
-                 commit_timezone=None, author_timezone=None,
+    def __init__(self,
+                 repo,
+                 author=u'',
+                 message=u'',
+                 parent_ids=[],
+                 tree=None,
+                 committer=None,
+                 commit_time=None,
+                 author_time=None,
+                 commit_timezone=None,
+                 author_timezone=None,
                  encoding='UTF-8'):
         now = int(time.time())
         local_timezone = get_local_timezone(now)
@@ -216,19 +225,17 @@ class MalleableCommit(object):
     def from_existing(cls, repo, commit_id):
         commit = repo[commit_id]
         encoding = commit.encoding or 'UTF-8'
-        return cls(
-            repo,
-            author=commit.author,
-            message=commit.message.decode(encoding),
-            parent_ids=commit.parents,
-            committer=commit.committer,
-            commit_time=commit.commit_time,
-            author_time=commit.author_time,
-            commit_timezone=commit.commit_timezone,
-            author_timezone=commit.author_timezone,
-            encoding=encoding,
-            tree=repo[commit.tree],
-        )
+        return cls(repo,
+                   author=commit.author,
+                   message=commit.message.decode(encoding),
+                   parent_ids=commit.parents,
+                   committer=commit.committer,
+                   commit_time=commit.commit_time,
+                   author_time=commit.author_time,
+                   commit_timezone=commit.commit_timezone,
+                   author_timezone=commit.author_timezone,
+                   encoding=encoding,
+                   tree=repo[commit.tree], )
 
     def to_commit(self):
         new_commit = Commit()

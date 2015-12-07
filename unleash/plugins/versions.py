@@ -10,32 +10,28 @@ PLUGIN_NAME = 'versions'
 
 def require_setup_py():
     return require_file(
-        'setup.py',
-        'No setup.py found',
+        'setup.py', 'No setup.py found',
         'The version could not determined because no setup.py file was found. '
         'Either supply a release version explicity or make sure setup.py '
-        'exists in the root of the repository.'
-    )
+        'exists in the root of the repository.')
 
 
 def setup(cli):
     cli.commands['release'].params.append(Option(
         ['--dev-version', '-d'],
         help='Set new development version to this. If not given, '
-             'auto-increment the release-version.'
-    ))
+        'auto-increment the release-version.'))
 
     cli.commands['release'].params.append(Option(
         ['--release-version', '-v'],
         help='Set the release version to this. If not given, will be '
-             'auto-detected from setup.py.'
-    ))
+        'auto-detected from setup.py.'))
 
     cli.params.append(Option(
-        ['--package-dir', '-p'], multiple=True,
+        ['--package-dir', '-p'],
+        multiple=True,
         help='Directories in which packages can be found (used to update '
-             '__version__ variables. Can be given multiple times.'
-    ))
+        '__version__ variables. Can be given multiple times.'))
 
 
 def _shorten_version(version):
@@ -55,11 +51,9 @@ def _set_commit_version(version):
     log.info('Updating setup.py and package version ({})'.format(version))
 
     # update setup.py
-    commit.set_path_data('setup.py', replace_assign(
-        setup_py,
-        'version',
-        version,
-    ))
+    commit.set_path_data('setup.py', replace_assign(setup_py,
+                                                    'version',
+                                                    version, ))
 
     # update PKGNAME/__init__.py files
     for fn in info['init_files']:
@@ -67,8 +61,7 @@ def _set_commit_version(version):
         commit.set_path_data(fn, replace_assign(
             commit.get_path_data(fn),
             '__version__',
-            version,
-        ))
+            version, ))
 
 
 def collect_info():
@@ -84,8 +77,7 @@ def collect_info():
                 release_version = find_assign(setup_py, 'version')
             except ValueError as e:
                 issues.error(
-                    e,
-                    'There was an issue extracting the version number from '
+                    e, 'There was an issue extracting the version number from '
                     'setup.py. Please make sure there is only a single '
                     'version= assignment in that file.')
 
@@ -133,8 +125,7 @@ def collect_info():
     # use provided package dirs or auto-detected one from setup.py
     pkg_paths = set(opts['package_dir'])
     if not pkg_paths:
-        pkg_paths = set([info['pkg_name'],
-                         info['pkg_name'].replace('-', '_')])
+        pkg_paths = set([info['pkg_name'], info['pkg_name'].replace('-', '_')])
 
     log.debug('Package paths: {}'.format(pkg_paths))
     init_files = [path + '/__init__.py' for path in pkg_paths]
