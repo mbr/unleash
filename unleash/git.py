@@ -5,10 +5,10 @@ from stat import S_ISLNK, S_ISDIR, S_ISREG, S_IFDIR, S_IRWXU, S_IRWXG, S_IRWXO
 import time
 
 from dateutil.tz import tzlocal
+from dulwich.errors import NotTreeError
 from dulwich.objects import S_ISGITLINK, Blob, Commit, Tree
 import logbook
 from stuf.collects import ChainMap
-
 
 log = logbook.Logger('git')
 HASH_RE = re.compile('^[a-zA-Z0-9]{40}$')
@@ -307,7 +307,7 @@ class MalleableCommit(object):
         try:
             self.get_path_data(path)
             return True
-        except KeyError:
+        except (KeyError, NotTreeError):
             return False
 
     def get_path_id(self, path):
