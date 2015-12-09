@@ -98,6 +98,14 @@ class ResolvedRef(object):
         ]
 
         for name in full_names:
+            try:
+                # FIXME: there seems to be a bug in dulwich here that is
+                # triggered by some (possibly broken?) repositories, causing a
+                # StopIteration to be raised.
+                name in self.repo.refs
+            except StopIteration:
+                pass
+
             if name in self.repo.refs:
                 # store symbolic ref targets
                 target = self.repo.refs.read_ref(name)
