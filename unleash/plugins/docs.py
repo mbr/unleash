@@ -15,23 +15,27 @@ PLUGIN_DEPENDS = ['versions']
 
 
 def setup(cli):
-    cli.params.append(Option(
-        ['--doc-dir', '-D'], default='docs',
-        help='Default directory in which to look for docs.',
-    ))
-    cli.params.append(Option(
-        ['--sphinx-styles'], multiple=True,
-        help='Names of extra packages containing sphinx styles to install '
-             'when building docs (default: auto-detect from conf.py).'
-    ))
-    cli.params.append(Option(
-        ['--sphinx-strict/--no-sphinx-strict'], default=True,
-        help='Turn sphinx warnings into errors (default: True).'
-    ))
-    cli.commands['publish'].params.append(Option(
-        ['--upload-docs/--no-upload-docs', '-d/-D'], default=True,
-        help='Upload documentation to PyPI.'
-    ))
+    cli.params.append(
+        Option(
+            ['--doc-dir', '-D'],
+            default='docs',
+            help='Default directory in which to look for docs.', ))
+    cli.params.append(
+        Option(
+            ['--sphinx-styles'],
+            multiple=True,
+            help='Names of extra packages containing sphinx styles to install '
+            'when building docs (default: auto-detect from conf.py).'))
+    cli.params.append(
+        Option(
+            ['--sphinx-strict/--no-sphinx-strict'],
+            default=True,
+            help='Turn sphinx warnings into errors (default: True).'))
+    cli.commands['publish'].params.append(
+        Option(
+            ['--upload-docs/--no-upload-docs', '-d/-D'],
+            default=True,
+            help='Upload documentation to PyPI.'))
 
 
 def collect_info():
@@ -156,8 +160,10 @@ def publish_release():
     if not conf:
         return
 
-    if opts['upload_docs']:
-        log.info('Uploading documentation to PyPI')
+    if not opts['upload_docs']:
+        return
+
+    log.info('Uploading documentation to PyPI')
 
     # create doc virtualenv
     with VirtualEnv.temporary() as ve, in_tmpexport(commit) as srcdir:
