@@ -163,11 +163,11 @@ def publish_release():
 
     log.info('Uploading documentation to PyPI')
 
-    # create doc virtualenv
-    with VirtualEnv.temporary() as ve, in_tmpexport(commit) as srcdir:
-        try:
-            sphinx_install(ve)
-            ve.pip_install(srcdir)
-            ve.check_output([ve.python, 'setup.py', 'upload_docs'])
-        except subprocess.CalledProcessError as e:
-            issues.error('Error building documentation:\n{}'.format(e))
+        # create doc virtualenv
+        with VirtualEnv.temporary() as ve, in_tmpexport(commit) as srcdir:
+            try:
+                sphinx_install(ve)
+                ve.pip_install(srcdir)
+                ve.check_output([ve.python, 'setup.py', 'upload_docs'])
+            except subprocess.CalledProcessError as e:
+                issues.error('Error building documentation:\n{}'.format(e))
