@@ -1,6 +1,11 @@
 Unleash your code
 =================
 
+   **Looking for the Unleash feature management platform?** This project
+   is unrelated. The Unleash Python SDK is
+   `UnleashClient <https://pypi.org/project/UnleashClient/>`__
+   (`docs <https://docs.getunleash.io/sdks/python>`__).
+
 ``unleash`` handles the boring details of cutting from your Python package a
 ``release`` and publishing it. It assists you by updating version numbers,
 making sure the documentation builds, reminding you that you still need to
@@ -53,3 +58,4 @@ means it is fairly easy to add custom checks and steps for releases or
 publications if you desire so.
 
 See the documentation at http://pythonhosted.org/unleash for details.
+
